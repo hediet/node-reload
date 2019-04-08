@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@hediet/std@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@hediet/std/-/std-0.2.0.tgz#5c55d95a38f7924d07dd9600330263f4352e0615"
-  integrity sha512-DIbIDvI7g7a1e11Gs7HCAN0s8YvyKQ78ZSpdWr/LZDOz1FTXXgdxKTyQhYZy31F1oCXzVJwoUCNrxnrNLfsdZw==
+"@hediet/std@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@hediet/std/-/std-0.3.0.tgz#d0ac8978cdbefdfaa09e5241b9a465df39dfac4c"
+  integrity sha512-wRmzmOkVbm/xX8vhFv5F3Re2GX7rOQycX9yj+ZxGIAprD8tKMRGTkQS25f7nxd8/LsDIX7blCjeB2Ov6WrhPLw==
   dependencies:
     "@types/chai" "^4.1.7"
     "@types/sinon" "^7.0.10"

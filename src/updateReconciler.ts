@@ -1,21 +1,5 @@
 import { Disposable, DisposableLike, dispose } from "@hediet/std/disposable";
-
-class AttachedProperty<TTarget extends object, TValue> {
-	private readonly sym = Symbol();
-
-	constructor(private readonly defaultValueCtor: () => TValue) {}
-
-	public get(target: TTarget): TValue {
-		if (!(this.sym in target)) {
-			(target as any)[this.sym] = this.defaultValueCtor();
-		}
-		return (target as any)[this.sym];
-	}
-
-	public set(target: TTarget, value: TValue) {
-		(target as any)[this.sym] = value;
-	}
-}
+import { AttachedProperty } from "@hediet/std/extensibility";
 
 interface ModuleInfo {
 	updaters: Set<Updater>;
@@ -35,7 +19,7 @@ const moduleInfoProperty = new AttachedProperty<NodeModule, ModuleInfo>(() => ({
 	disposables: [],
 }));
 
-export function installUpdateReconciler(mod: NodeModule) {
+export function registerUpdateReconciler(mod: NodeModule) {
 	mod.reconciler = ctx => {
 		const info = moduleInfoProperty.get(mod);
 		const curUpdaters = [...info.updaters];

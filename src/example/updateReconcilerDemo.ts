@@ -1,13 +1,7 @@
-import {
-    Controller,
-    Steps,
-    steps,
-    installUpdateReconciler,
-    useExportedItemAndUpdateOnReload,
-    getReloadCount
-} from "..";
+import { Steps, steps, registerUpdateReconciler } from "..";
+import { runExportedSteps } from "../steps";
 
-installUpdateReconciler(module);
+registerUpdateReconciler(module);
 
 /*
 export class Test {
@@ -34,53 +28,38 @@ if (getReloadCount(module) === 0) {
 }
 */
 
-export function buildSteps(): Steps<void, void> {
-    return steps(
-        {
-            id: "start",
-            do: async args => {
-                console.log("start");
-                return {
-                    result: { data: 4 },
-                    undo: async () => {
-                        console.log("undo start");
-                    }
-                };
-            }
-        },
-        {
-            id: "continue1",
-            do: async args => {
-                console.log("continue 1");
-                return {
-                    result: {
-                        data2: 10,
-                        ...args
-                    },
-                    undo: async () => {
-                        console.log("undo continue 1b");
-                    }
-                };
-            }
-        },
-        {
-            id: "continue2",
-            do: async args => {
-                console.log("continue 2");
-                return {
-                    result: {},
-                    undo: async () => {
-                        console.log("undo continue 2");
-                    }
-                };
-            }
-        }
-    );
-}
+runExportedSteps(module, getSteps);
 
-if (getReloadCount(module) === 0) {
-    const controller = new Controller<void, void>();
-    useExportedItemAndUpdateOnReload(module, buildSteps, buildSteps => {
-        controller.applyNewSteps(buildSteps());
-    });
+export function getSteps(): Steps {
+	return steps(
+		{
+			id: "start",
+			do: async (args, { onUndo }) => {
+				console.log("start");
+				onUndo(async () => console.log("undo start"));
+				return {
+					data: 5,
+				};
+			},
+		},
+		{
+			id: "continue1",
+			do: async (args, { onUndo }) => {
+				console.log("continue 1");
+				onUndo(async () => console.log("undo 1"));
+				return {
+					data2: 10,
+					...args,
+				};
+			},
+		},
+		{
+			id: "continue2",
+			do: async (args, { onUndo }) => {
+				console.log("continue 2");
+				onUndo(async () => console.log("undo 2"));
+				return {};
+			},
+		}
+	);
 }

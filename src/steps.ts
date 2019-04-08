@@ -3,9 +3,13 @@ import {
 	useExportedItemAndUpdateOnReload,
 } from "./updateReconciler";
 
+export interface StepContext {
+	onUndo(undoFn: () => Promise<any>): void;
+}
+
 export interface Step<A = unknown, B = unknown> {
 	id: string;
-	do: (args: A) => Promise<{ result: B; undo?: () => Promise<unknown> } | B>;
+	do: (args: A, context: StepContext) => Promise<B>;
 }
 
 export interface Steps {
@@ -26,6 +30,7 @@ export function steps<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
 ): Steps {
 	return {
 		steps: [
+			step0,
 			step1,
 			step2,
 			step3,
@@ -41,8 +46,7 @@ export function steps<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
 
 export interface StepData {
 	step: Step;
-	processed: boolean;
-	result: { undo?: () => void; result: unknown } | undefined;
+	result: { undos: (() => Promise<void>)[]; result: unknown } | undefined;
 }
 
 export class Controller {
@@ -50,98 +54,100 @@ export class Controller {
 	private steps = new Array<StepData>();
 
 	public async applyNewSteps(steps: Steps): Promise<void> {
-		const [firstChangedIdx, lastChangedIdx] = this.findChangedIndices(
-			steps
-		);
-		console.log("first: ", firstChangedIdx, "last: ", lastChangedIdx);
+		const { unchangedCountStart, unchangedCountEnd } = this.compare(steps);
 
-		if (firstChangedIdx > lastChangedIdx) {
-			return;
-		}
+		/*
+		console.log(
+			"unchanged front: ",
+			unchangedCountStart,
+			"unchanged end: ",
+			unchangedCountEnd
+        );
+        */
 
-		while (this.lastRanStepIdx >= firstChangedIdx) {
-			const r = this.steps[this.lastRanStepIdx].result;
-			if (r) {
-				if (r.undo) {
-					r.undo();
-				}
-			} else {
-				throw new Error("Should not happen");
-			}
-			this.lastRanStepIdx--;
-		}
+		await this.moveBefore(unchangedCountStart);
 
-		this.steps = steps.steps.map((step, i) => {
-			if (i < firstChangedIdx) {
-				return {
-					step,
-					processed: true,
-					result: this.steps[i].result,
-				};
-			} else {
-				return {
-					step,
-					processed: false,
-					result: undefined,
-				};
-			}
-		});
+		this.steps = steps.steps.map((step, i) => ({
+			step,
+			result: i < unchangedCountStart ? this.steps[i].result : undefined,
+		}));
 
-		while (this.lastRanStepIdx < lastChangedIdx) {
+		await this.moveAfter(this.steps.length - 1 - unchangedCountEnd);
+	}
+
+	private async moveAfter(stepIdx: number): Promise<void> {
+		while (this.lastRanStepIdx < stepIdx) {
 			const nextStep = this.steps[this.lastRanStepIdx + 1];
 			let arg = undefined;
 			if (this.lastRanStepIdx >= 0) {
 				arg = this.steps[this.lastRanStepIdx].result!.result;
 			}
-			let result: any = await nextStep.step.do(arg);
-			if (!("result" in result)) {
-				result = { result, undo: () => {} };
-			}
-			nextStep.result = result;
+			const undos = new Array<() => Promise<void>>();
+			const result = await nextStep.step.do(arg, {
+				onUndo: fn => undos.push(fn),
+			});
+			nextStep.result = { result, undos };
 			this.lastRanStepIdx++;
 		}
 	}
 
-	private findChangedIndices(steps: Steps): [number, number] {
-		let firstChangedIdx;
-		for (
-			firstChangedIdx = 0;
-			firstChangedIdx < steps.steps.length;
-			firstChangedIdx++
-		) {
-			const oldStep = this.steps[firstChangedIdx];
-			const newStep = steps.steps[firstChangedIdx];
-			if (!oldStep) {
+	private async moveBefore(stepIdx: number): Promise<void> {
+		while (this.lastRanStepIdx >= stepIdx) {
+			const stepData = this.steps[this.lastRanStepIdx];
+			const r = stepData.result;
+			if (!r) {
+				throw new Error("Should not happen");
+			}
+			r.undos.reverse();
+			for (const undo of r.undos) {
+				await undo();
+			}
+			stepData.result = undefined;
+			this.lastRanStepIdx--;
+		}
+	}
+
+	private compare(
+		steps: Steps
+	): { unchangedCountStart: number; unchangedCountEnd: number } {
+		const areEqual = (
+			s1: StepData | undefined,
+			s2: Step | undefined
+		): boolean => {
+			if (s1 === s2) {
+				return true;
+			}
+			if (!s1 || !s2) {
+				return false;
+			}
+			return this.areEqual(s1.step, s2);
+		};
+
+		const stepsArr = steps.steps;
+		const stepsLen = stepsArr.length;
+
+		let unchangedCountStart = 0;
+		for (let i = 0; i < stepsLen; i++) {
+			if (!areEqual(this.steps[i], stepsArr[i])) {
 				break;
 			}
-			if (!this.areEqual(oldStep.step, newStep)) {
-				break;
-			}
+			unchangedCountStart++;
 		}
 
-		let lastChangedIdx;
-		for (
-			lastChangedIdx = Math.max(
-				steps.steps.length - 1,
-				this.steps.length - 1
-			);
-			lastChangedIdx > 0;
-			lastChangedIdx--
-		) {
-			const oldStep = this.steps[lastChangedIdx];
-			const newStep = steps.steps[lastChangedIdx];
-			if (!oldStep) {
+		let unchangedCountEnd = 0;
+		for (let i = 1; i <= stepsLen; i++) {
+			if (
+				!areEqual(
+					this.steps[this.steps.length - i],
+					stepsArr[stepsLen - i]
+				)
+			) {
 				break;
 			}
-			if (!this.areEqual(oldStep.step, newStep)) {
-				break;
-			}
+			unchangedCountEnd++;
 		}
 
-		return [
-			firstChangedIdx,
-			Math.min(lastChangedIdx, steps.steps.length - 1),
-		];
+		return { unchangedCountStart, unchangedCountEnd };
 	}
 
 	private areEqual(step1: Step, step2: Step): boolean {
@@ -157,14 +163,11 @@ export class Controller {
 	}
 }
 
-export function setupControllerForExportedBuilder(
-	module: NodeModule,
-	builder: () => Steps
-) {
+export function runExportedSteps(module: NodeModule, factory: () => Steps) {
 	if (getReloadCount(module) === 0) {
 		const controller = new Controller();
-		useExportedItemAndUpdateOnReload(module, builder, builder => {
-			controller.applyNewSteps(builder());
+		useExportedItemAndUpdateOnReload(module, factory, factory => {
+			controller.applyNewSteps(factory());
 		});
 	}
 }
