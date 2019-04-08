@@ -1,6 +1,6 @@
 import {
     getReloadCount,
-    useExportedItemAndUpdateOnReload
+    useExportedItemAndUpdateOnReload,
 } from "./updateReconciler";
 
 export interface Step<A = unknown, B = unknown> {
@@ -8,22 +8,34 @@ export interface Step<A = unknown, B = unknown> {
     do: (args: A) => Promise<{ result: B; undo?: () => Promise<unknown> } | B>;
 }
 
-export interface Steps<D1 = unknown, D2 = unknown> {
+export interface Steps {
     steps: Step<unknown, unknown>[];
 }
 
-export function steps<D1, D2, D3, D4, D5, D6, D7>(
-    step1: Step<D1, D2>,
-    step2?: Step<D2, D3>,
-    step3?: Step<D3, D4>,
-    step4?: Step<D4, D5>,
-    step5?: Step<D5, D6>,
-    step6?: Step<D6, D7>
-): Steps<D1, D6> {
+export function steps<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+    step0: Step<{}, T1>,
+    step1: Step<T1, T2>,
+    step2?: Step<T2, T3>,
+    step3?: Step<T3, T4>,
+    step4?: Step<T4, T5>,
+    step5?: Step<T5, T6>,
+    step6?: Step<T6, T7>,
+    step7?: Step<T7, T8>,
+    step8?: Step<T8, T9>,
+    step9?: Step<T9, unknown>
+): Steps {
     return {
-        steps: [step1, step2, step3, step4, step5, step6].filter(
-            s => s != undefined
-        ) as Step[]
+        steps: [
+            step1,
+            step2,
+            step3,
+            step4,
+            step5,
+            step6,
+            step7,
+            step8,
+            step9,
+        ].filter(s => s != undefined) as Step[],
     };
 }
 
@@ -33,11 +45,11 @@ export interface StepData {
     result: { undo?: () => void; result: unknown } | undefined;
 }
 
-export class Controller<TIn, TOut> {
+export class Controller {
     private lastRanStepIdx: number = -1;
     private steps = new Array<StepData>();
 
-    public async applyNewSteps(steps: Steps<TIn, TOut>): Promise<void> {
+    public async applyNewSteps(steps: Steps): Promise<void> {
         const [firstChangedIdx, lastChangedIdx] = this.findChangedIndices(
             steps
         );
@@ -64,13 +76,13 @@ export class Controller<TIn, TOut> {
                 return {
                     step,
                     processed: true,
-                    result: this.steps[i].result
+                    result: this.steps[i].result,
                 };
             } else {
                 return {
                     step,
                     processed: false,
-                    result: undefined
+                    result: undefined,
                 };
             }
         });
@@ -78,7 +90,7 @@ export class Controller<TIn, TOut> {
         while (this.lastRanStepIdx < lastChangedIdx) {
             const nextStep = this.steps[this.lastRanStepIdx + 1];
             let arg = undefined;
-            if (this.lastRanStepIdx > 0) {
+            if (this.lastRanStepIdx >= 0) {
                 arg = this.steps[this.lastRanStepIdx].result!.result;
             }
             let result: any = await nextStep.step.do(arg);
@@ -128,7 +140,7 @@ export class Controller<TIn, TOut> {
 
         return [
             firstChangedIdx,
-            Math.min(lastChangedIdx, steps.steps.length - 1)
+            Math.min(lastChangedIdx, steps.steps.length - 1),
         ];
     }
 
@@ -150,7 +162,7 @@ export function setupControllerForExportedBuilder(
     builder: () => Steps
 ) {
     if (getReloadCount(module) === 0) {
-        const controller = new Controller<void, void>();
+        const controller = new Controller();
         useExportedItemAndUpdateOnReload(module, builder, builder => {
             controller.applyNewSteps(builder());
         });
