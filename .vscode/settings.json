@@ -1,0 +1,3 @@
+{
+    "rpcServer.nodeDebugger.autoAttachLabels": ["hot-reload"]
+}
