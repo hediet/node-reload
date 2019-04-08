@@ -148,8 +148,6 @@ export class HotReloadService {
             )}"`
         );
 
-        const content = readFileSync(filename, { encoding: "utf8" });
-
         const mightNeedReconcilation = this.getModulesThatMightNeedReconcilation(
             changedModule
         );
@@ -165,18 +163,6 @@ export class HotReloadService {
                 continue;
             }
 
-            const reason: UpdateReason = {
-                dependencyUpdates: new Map()
-            };
-
-            const modChanged = curMod === changedModule;
-            if (modChanged) {
-                reason.moduleUpdates = {
-                    newSource: content,
-                    oldSource: changedModule.mod.source
-                };
-            }
-
             const possibleChangedDeps = [
                 ...curMod.dependencies.values()
             ].filter(d => mightNeedReconcilation.has(d));
@@ -185,38 +171,58 @@ export class HotReloadService {
                 // Process after all relevant deps have been processed.
                 continue;
             }
-
-            const notReconciledDeps = possibleChangedDeps.filter(
-                d => !processedDeps.get(d)!.reconciled
-            );
-
-            for (const d of notReconciledDeps) {
-                reason.dependencyUpdates.set(
-                    d.id,
-                    processedDeps.get(d)!.reason
-                );
-            }
-
-            let reconciled = true;
-            if (modChanged || notReconciledDeps.length > 0) {
-                // something changed for this module
-                this.log(`Reconciling ${curMod.id}:`);
-                reconciled = curMod.tryToReconcile(reason);
-                if (!reconciled) {
-                    if (curMod.dependants.size === 0) {
-                        this.log(`failed.`);
-                    }
-                } else {
-                    this.log(`succeeded.`);
-                }
-            }
-
-            processedDeps.set(curMod, { reconciled, reason });
+            const notReconciledDeps = possibleChangedDeps.filter(d => !processedDeps.get(d)!.reconciled);
+            const reason = this.getReason(curMod, changedModule, notReconciledDeps, processedDeps);
+            const reconciled = this.tryToReconcile(reason, curMod);
+            processedDeps.set(curMod, { reason, reconciled });
 
             for (const dependant of curMod.dependants) {
                 queue.push(dependant);
             }
         }
+    }
+
+    private getReason(
+        curMod: ReconcilableModule,
+        changedModule: ReconcilableNodeModule,
+        notReconciledDeps: ReconcilableModule[],
+        processedDeps: ReadonlyMap<ReconcilableModule, { reconciled: boolean; reason: UpdateReason; }>
+    ): UpdateReason {
+        const reason: UpdateReason = {
+            dependencyUpdates: new Map()
+        };
+        if (curMod === changedModule) {
+            const newSource = readFileSync(changedModule.mod.filename, { encoding: "utf8" });
+            reason.moduleUpdates = {
+                newSource,
+                oldSource: changedModule.mod.source
+            };
+        }
+        for (const d of notReconciledDeps) {
+            reason.dependencyUpdates.set(d.id, processedDeps.get(d)!.reason);
+        }
+        return reason;
+    }
+
+    private tryToReconcile(
+        reason: UpdateReason,
+        curMod: ReconcilableModule,
+    ): boolean {
+        if (reason.moduleUpdates || reason.dependencyUpdates.size > 0) {
+            // something changed for this module
+            this.log(`Reconciling ${curMod.id}:`);
+            if (curMod.tryToReconcile(reason)) {
+                this.log(`succeeded.`);
+                return true;
+            }
+            else {
+                if (curMod.dependants.size === 0) {
+                    this.log(`failed.`);
+                }
+                return false;
+            }
+        }
+        return false;
     }
 
     private getModulesThatMightNeedReconcilation(
