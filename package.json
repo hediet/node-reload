@@ -1,26 +1,39 @@
 {
-    "name": "@hediet/node-reload",
-    "version": "1.0.0",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "author": {
-        "name": "Henning Dieterichs",
-        "email": "henning.dieterichs@live.de"
-    },
-    "repository": {
-        "type": "git",
-        "url": ""
-    },
-    "license": "MIT",
-    "dependencies": {
-        "@hediet/std": "^0.2.0",
-        "@types/esprima": "^4.0.2",
-        "@types/estree": "^0.0.39",
-        "@types/node": "^11.13.0",
-        "@types/puppeteer-core": "^1.9.0",
-        "@types/stack-trace": "^0.0.29",
-        "chokidar": "^2.1.5",
-        "esprima": "^4.0.1",
-        "stack-trace": "^0.0.10"
-    }
+	"name": "@hediet/node-reload",
+	"version": "0.1.0",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"author": {
+		"name": "Henning Dieterichs",
+		"email": "henning.dieterichs@live.de"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/hediet/node-reload.git"
+	},
+	"homepage": "https://github.com/hediet/node-reload",
+	"scripts": {
+		"dev": "tsc --watch",
+		"build": "tsc"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"@hediet/std": "^0.2.0",
+		"@types/esprima": "^4.0.2",
+		"@types/estree": "^0.0.39",
+		"@types/node": "^11.13.0",
+		"@types/puppeteer-core": "^1.9.0",
+		"@types/stack-trace": "^0.0.29",
+		"chokidar": "^2.1.5",
+		"esprima": "^4.0.1",
+		"stack-trace": "^0.0.10"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"files": [
+		"dist",
+		"src"
+	]
 }
