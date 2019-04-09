@@ -6,6 +6,10 @@ export interface HotReloadOptions {
 	shouldTrack?: (filename: string) => boolean;
 }
 
+/**
+ * Enables hot reloading for the specified module or `process.mainModule` if no module is specified.
+ * Dependencies of tracked modules are also tracked.
+ */
 export function enableHotReload(options?: HotReloadOptions) {
 	if (!HotReloadService.instance) {
 		let shouldTrack = (filename: string) => {

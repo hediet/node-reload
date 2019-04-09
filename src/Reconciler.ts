@@ -1,3 +1,5 @@
+import { AttachedProperty } from "@hediet/std/extensibility";
+
 export interface ModuleUpdateReason {
 	oldSource: string;
 	newSource: string;
@@ -15,3 +17,16 @@ export interface ReconcileContext extends UpdateReason {
 }
 
 export type Reconciler = (context: ReconcileContext) => boolean;
+
+/**
+ * Unstable.
+ */
+export const nodeModuleReconcilerProperty = new AttachedProperty<
+	NodeModule,
+	Reconciler | undefined
+>(() => undefined);
+
+export const nodeModuleSourceProperty = new AttachedProperty<
+	NodeModule,
+	string | undefined
+>(() => undefined);

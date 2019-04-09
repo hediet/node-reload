@@ -2,7 +2,12 @@ import { watch } from "chokidar";
 import { relative } from "path";
 import { readFileSync } from "fs";
 import Module = require("module");
-import { UpdateReason, ReconcileContext } from "./Reconciler";
+import {
+	UpdateReason,
+	ReconcileContext,
+	nodeModuleSourceProperty,
+	nodeModuleReconcilerProperty,
+} from "./Reconciler";
 
 export class HotReloadService {
 	public static instance: HotReloadService | undefined;
@@ -101,7 +106,7 @@ export class HotReloadService {
 		const source = readFileSync(filename, {
 			encoding: "utf8",
 		});
-		requiredModule.source = source;
+		nodeModuleSourceProperty.set(requiredModule, source);
 
 		const trackedModule = new ReconcilableNodeModule(requiredModule, this);
 
@@ -144,7 +149,7 @@ export class HotReloadService {
 		this.log(
 			`File changed: "${relative(
 				process.cwd(),
-				changedModule.mod.filename
+				changedModule.module.filename
 			)}"`
 		);
 
@@ -202,12 +207,12 @@ export class HotReloadService {
 			dependencyUpdates: new Map(),
 		};
 		if (curMod === changedModule) {
-			const newSource = readFileSync(changedModule.mod.filename, {
+			const newSource = readFileSync(changedModule.module.filename, {
 				encoding: "utf8",
 			});
 			reason.moduleUpdates = {
 				newSource,
-				oldSource: changedModule.mod.source,
+				oldSource: nodeModuleSourceProperty.get(changedModule.module)!,
 			};
 		}
 		for (const d of notReconciledDeps) {
@@ -266,18 +271,18 @@ abstract class ReconcilableModule {
 
 class ReconcilableNodeModule extends ReconcilableModule {
 	public prepareNewModule:
-		| ((mod: NodeModule) => void)
+		| ((module: NodeModule) => void)
 		| undefined = undefined;
 
 	constructor(
-		public readonly mod: NodeModule,
+		public readonly module: NodeModule,
 		private readonly service: HotReloadService
 	) {
 		super();
 	}
 
 	public get id(): string {
-		return this.mod.id;
+		return this.module.id;
 	}
 
 	public tryToReconcile(reason: UpdateReason): boolean {
@@ -286,7 +291,7 @@ class ReconcilableNodeModule extends ReconcilableModule {
 		const clearOldCache = () => {
 			if (!reloaded) {
 				this.service.log(`... clearing cache`);
-				delete require.cache[this.mod.filename];
+				delete require.cache[this.module.filename];
 			}
 			reloaded = true;
 		};
@@ -297,12 +302,12 @@ class ReconcilableNodeModule extends ReconcilableModule {
 			this.service.log("... requiring new module");
 			this.prepareNewModule = prepareNewModule;
 			const newExports = this.service.originalModule.require.call(
-				this.mod,
-				this.mod.filename
+				this.module,
+				this.module.filename
 			);
 			this.prepareNewModule = undefined;
 			const requiredModule = require.cache[
-				this.mod.filename
+				this.module.filename
 			] as NodeModule;
 			return { newExports, newModule: requiredModule };
 		};
@@ -319,8 +324,9 @@ class ReconcilableNodeModule extends ReconcilableModule {
 	}
 
 	private reconcile(context: ReconcileContext): boolean {
-		if ("reconciler" in this.mod) {
-			return this.mod.reconciler(context);
+		const r = nodeModuleReconcilerProperty.get(this.module);
+		if (r) {
+			return r(context);
 		}
 		return false;
 	}

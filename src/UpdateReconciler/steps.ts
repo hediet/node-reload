@@ -1,7 +1,4 @@
-import {
-	getReloadCount,
-	useExportedItemAndUpdateOnReload,
-} from "./updateReconciler";
+import { getReloadCount, hotRequireExportedFn } from "./updateReconciler";
 
 export interface StepContext {
 	onUndo(undoFn: () => Promise<any>): void;
@@ -9,6 +6,7 @@ export interface StepContext {
 
 export interface Step<A = unknown, B = unknown> {
 	id: string;
+	uses?: unknown;
 	do: (args: A, context: StepContext) => Promise<B>;
 }
 
@@ -150,23 +148,72 @@ export class Controller {
 		return { unchangedCountStart, unchangedCountEnd };
 	}
 
-	private areEqual(step1: Step, step2: Step): boolean {
-		if (step1.id !== step2.id) {
+	private areEqual(o1: unknown, o2: unknown): boolean {
+		if (typeof o1 === "function" && typeof o2 === "function") {
+			return o1.toString() === o2.toString();
+		}
+		if (typeof o1 === "object" && typeof o2 === "object") {
+			if (o1 === null) {
+				return o2 === null;
+			}
+			if (o2 === null) {
+				return false;
+			}
+			for (const entry of diffObjectsKeys(o1, o2)) {
+				if (!this.areEqual(entry.val1, entry.val2)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		if (Array.isArray(o1) && Array.isArray(o2)) {
+			if (o1.length !== o2.length) {
+				return false;
+			}
+
+			for (let i = 0; i < o1.length; i++) {
+				if (!this.areEqual(o1[i], o2[i])) {
+					return false;
+				}
+			}
 			return false;
 		}
 
-		if (step1.do.toString() !== step2.do.toString()) {
-			return false;
-		}
-
-		return true;
+		return o1 == o2;
 	}
+}
+
+type DiffTuple<T1, T2> = { key: string; val1: T1; val2: T2 };
+type KeyDiff<T> =
+	| DiffTuple<T, T>
+	| DiffTuple<T, undefined>
+	| DiffTuple<undefined, T>;
+function diffObjectsKeys<T>(obj1: object, obj2: object): KeyDiff<T>[] {
+	const result = new Array<KeyDiff<T>>();
+	for (const key in obj1) {
+		if (key in obj2) {
+			result.push({
+				key,
+				val1: (obj1 as any)[key],
+				val2: (obj2 as any)[key],
+			});
+		} else {
+			result.push({ key, val1: (obj1 as any)[key], val2: undefined });
+		}
+	}
+	for (const key in obj2) {
+		if (!(key in obj1)) {
+			result.push({ key, val1: undefined, val2: (obj2 as any)[key] });
+		}
+	}
+
+	return result;
 }
 
 export function runExportedSteps(module: NodeModule, factory: () => Steps) {
 	if (getReloadCount(module) === 0) {
 		const controller = new Controller();
-		useExportedItemAndUpdateOnReload(module, factory, factory => {
+		hotRequireExportedFn(module, factory, factory => {
 			controller.applyNewSteps(factory());
 		});
 	}

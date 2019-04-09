@@ -1,6 +1,12 @@
 import { DisposableLike, Disposable, dispose } from "@hediet/std/disposable";
 import { HotReloadService, DelegateModule } from "./HotReloadService";
 
+/**
+ * Requires the module `request` (as in `require(request)`) and calls `loader` with the result.
+ * If the required module reloads, the callback is called with the new module.
+ * Returned disposables of previous invocations are disposed.
+ * Use the returned disposable to stop watching for reloadings and disposing the last returned disposable.
+ */
 export function hotRequire<TModule>(
 	caller: NodeModule,
 	request: string,

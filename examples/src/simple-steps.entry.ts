@@ -1,33 +1,13 @@
-import { Steps, steps, registerUpdateReconciler } from "..";
-import { runExportedSteps } from "../steps";
+import {
+	registerUpdateReconciler,
+	enableHotReload,
+	runExportedSteps,
+	Steps,
+	steps,
+} from "../../dist";
 
+enableHotReload({ loggingEnabled: false });
 registerUpdateReconciler(module);
-
-/*
-export class Test {
-    constructor() {
-        console.log("constructor");
-    }
-}
-
-hotRequireExportedItem(module, Test, Test => {
-    new Test();
-});
-
-
-export function foo(arg: string) {
-    console.log(arg + "hall");
-}
-
-if (getReloadCount(module) === 0) {
-    let i = 0;
-    useExportedItemAndUpdateOnReload(module, foo, foo => {
-        console.log(foo.toString());
-        foo("test" + i++);
-    });
-}
-*/
-
 runExportedSteps(module, getSteps);
 
 export function getSteps(): Steps {
