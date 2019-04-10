@@ -2,7 +2,7 @@
 
 [![](https://img.shields.io/twitter/follow/hediet_dev.svg?style=social)](https://twitter.com/intent/follow?screen_name=hediet_dev)
 
-A thoughtfully designed library for bringing advanced hot reloading to NodeJS.
+A thoughtfully designed library that brings advanced hot reloading to NodeJS.
 
 ## Usage
 
