@@ -53,7 +53,8 @@ enableHotReload();
 // Call `registerUpdateReconciler` to mark this module as reconcilable.
 // If this module (or any dependency that could not be reconciled) changes,
 // the `UpdateReconciler` is asked to apply the new module to the old.
-// The `UpdateReconciler` powers `getReloadCount`, `hotRequireExportedFn`, `runExportedSteps` and other functions.
+// The `UpdateReconciler` powers `getReloadCount`, `hotRequireExportedFn`,
+// `runExportedSteps` and other functions.
 registerUpdateReconciler(module);
 
 export function foo(arg: string) {
