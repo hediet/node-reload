@@ -16,23 +16,44 @@ interface Updater {
 	lastFn: Function;
 }
 
-const moduleInfoProperty = new AttachedProperty<NodeModule, ModuleInfo>(() => ({
-	reloadCount: 0,
-	updaters: new Set<Updater>(),
-	disposables: [],
-}));
+const moduleInfoProperty = new AttachedProperty<
+	NodeModule,
+	ModuleInfo | undefined
+>(() => undefined);
 
+/**
+ * Registers the `UpdateReconciler` for the given module.
+ * If the module changes after registration,
+ * it disposes all disposables registered by `disposeOnReload`
+ * and updates all `hotRequireExportedFn`-handlers.
+ */
 export function registerUpdateReconciler(module: NodeModule) {
-	nodeModuleReconcilerProperty.set(module, ctx => {
+	if (!moduleInfoProperty.get(module)) {
+		moduleInfoProperty.set(module, {
+			reloadCount: 0,
+			updaters: new Set<Updater>(),
+			disposables: [],
+		});
+	}
+	nodeModuleReconcilerProperty.set(module, context => {
 		const info = moduleInfoProperty.get(module);
+		if (!info) {
+			throw new Error("Impossible");
+		}
 		const curUpdaters = [...info.updaters];
 
 		dispose(info.disposables);
 
-		const { newExports } = ctx.reloadModule(newModule => {
-			const newInfo = moduleInfoProperty.get(newModule);
-			newInfo.reloadCount = info.reloadCount + 1;
-			newInfo.updaters = info.updaters;
+		const { newExports } = context.reloadModule(newModule => {
+			if (moduleInfoProperty.get(newModule)) {
+				throw new Error("Impossible");
+			}
+			const newInfo: ModuleInfo = {
+				reloadCount: info.reloadCount + 1,
+				updaters: info.updaters,
+				disposables: [],
+			};
+			moduleInfoProperty.set(newModule, newInfo);
 		});
 
 		for (const updater of curUpdaters) {
@@ -49,14 +70,29 @@ export function registerUpdateReconciler(module: NodeModule) {
 	});
 }
 
-export function getReloadCount(mod: NodeModule): number {
-	return moduleInfoProperty.get(mod).reloadCount;
+/**
+ * Gets the count of how often the given module was reconciled using the `UpdateReconciler`.
+ */
+export function getReloadCount(module: NodeModule): number {
+	const info = moduleInfoProperty.get(module);
+	if (!info) {
+		throw new Error(`'registerUpdateReconciler' must be called first.`);
+	}
+	return info.reloadCount;
 }
 
-export function disposeOnReload(mod: NodeModule, disposable: DisposableLike) {
-	moduleInfoProperty
-		.get(mod)
-		.disposables.push(...Disposable.normalize(disposable));
+/**
+ * Disposes `disposable` when `module` is reconciled by the `UpdateReconciler`.
+ */
+export function disposeOnReload(
+	module: NodeModule,
+	disposable: DisposableLike
+) {
+	const info = moduleInfoProperty.get(module);
+	if (!info) {
+		throw new Error(`'registerUpdateReconciler' must be called first.`);
+	}
+	info.disposables.push(...Disposable.normalize(disposable));
 }
 
 export interface HotRequireExportedFnOptions {
@@ -70,7 +106,6 @@ export type HotRequireExportedFnUpdater<TItem extends Function> = (
 	current: TItem,
 	old: TItem | undefined
 ) => DisposableLike | void;
-
 export function hotRequireExportedFn<TItem extends Function>(
 	module: NodeModule,
 	fn: TItem,
@@ -99,6 +134,11 @@ export function hotRequireExportedFn(
 		update = optionalUpdate!;
 	}
 
+	const info = moduleInfoProperty.get(module);
+	if (!info) {
+		throw new Error(`'registerUpdateReconciler' must be called first.`);
+	}
+
 	let hasFnChanged: (newFn: Function, lastFn: Function) => boolean = () =>
 		true;
 	if (options) {
@@ -117,10 +157,10 @@ export function hotRequireExportedFn(
 		update,
 	};
 
-	moduleInfoProperty.get(module).updaters.add(updater);
+	info.updaters.add(updater);
 
 	return Disposable.create(() => {
-		moduleInfoProperty.get(module).updaters.delete(updater);
+		info.updaters.delete(updater);
 		dispose(updater.lastDisposable);
 	});
 }
