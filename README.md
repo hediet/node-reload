@@ -23,7 +23,7 @@ Works best with TypeScript.
 
 ### Plain Hot Require
 
-`hotRequire` is the easiest way to watch for reloads.
+`hotRequire` is the way to go if you just want to watch a module for changes.
 
 ```ts
 import { enableHotReload, hotRequire } from "@hediet/node-reload";
@@ -32,7 +32,7 @@ import { enableHotReload, hotRequire } from "@hediet/node-reload";
 enableHotReload();
 
 hotRequire<typeof import("./dep")>(module, "./dep", cur => {
-	// initial run or `dep` (or any sub dependency of `dep`) changed
+	// Runs immediately or when `dep` (or any sub dependency of `dep`) changes.
 	console.log("value of x: ", cur.x);
 });
 ```
@@ -91,7 +91,7 @@ registerUpdateReconciler(module);
 export class Extension extends DisposableComponent {
 	constructor() {
 		super();
-		// disposables are disposed automatically on reload
+		// Disposables are disposed automatically on reload.
 		const item = this.trackDisposable(vscode.window.createStatusBarItem());
 		item.text = "Hallo Welt";
 		item.show();
@@ -115,6 +115,7 @@ registerUpdateReconciler(module);
 // Runs the given steps and applies updates by undoing already executed steps and running the new steps.
 // Unchanged last steps are run on initial load,
 // undone when steps before them change, but only run again when they or a step after them changes.
+// This way you can edit and hot reload intermediate steps without running all steps again after every change.
 runExportedSteps(module, getSteps);
 
 export function getSteps(): Steps {
