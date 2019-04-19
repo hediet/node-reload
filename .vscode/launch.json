@@ -1,16 +1,35 @@
 {
-    // Verwendet IntelliSense zum Ermitteln möglicher Attribute.
-    // Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
-    // Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Launch Program",
-            "program": "${workspaceFolder}\\dist\\index.js",
-            "preLaunchTask": "tsc: build - tsconfig.json",
-            "outFiles": ["${workspaceFolder}/dist/**/*.js"]
-        }
-    ]
+	// Verwendet IntelliSense zum Ermitteln möglicher Attribute.
+	// Zeigen Sie auf vorhandene Attribute, um die zugehörigen Beschreibungen anzuzeigen.
+	// Weitere Informationen finden Sie unter https://go.microsoft.com/fwlink/?linkid=830387
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Run Simple Steps",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/examples/dist/simple-steps.entry",
+			"preLaunchTask": "npm: dev"
+		},
+		{
+			"name": "Run Demo Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": ["--extensionDevelopmentPath=${workspaceFolder}/examples"],
+			"outFiles": ["${workspaceFolder}/examples/dist/**/*.js"],
+			"preLaunchTask": "npm: dev"
+		},
+		{
+			"name": "Run Steps Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}/StepsVsCode"
+			],
+			"outFiles": ["${workspaceFolder}/StepsVsCode/dist/**/*.js"],
+			"preLaunchTask": "npm: dev"
+		}
+	]
 }

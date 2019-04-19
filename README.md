@@ -73,7 +73,9 @@ if (getReloadCount(module) === 0) {
 
 ### Vs Code Extension Reloading
 
-With `hotRequireExportedFn` you can easily make your VS Code Extension hot reloadable:
+With `hotRequireExportedFn` you can easily make your VS Code Extension really hot.
+
+![](./docs/demo-vscode.gif)
 
 ```ts
 import {
@@ -85,7 +87,7 @@ import { DisposableComponent } from "@hediet/std/disposable";
 import * as vscode from "vscode";
 
 if (isDevMode()) {
-	enableHotReload(module);
+	enableHotReload({ entryModule: module });
 }
 registerUpdateReconciler(module);
 

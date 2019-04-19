@@ -1,0 +1,23 @@
+{
+	"name": "node-reload-steps-vscode",
+	"version": "1.0.0",
+	"license": "MIT",
+	"dependencies": {
+		"@hediet/node-reload": "^0.2.0",
+		"@hediet/std": "^0.4.0",
+		"@hediet/typed-json-rpc": "^0.5.0",
+		"@hediet/typed-json-rpc-websocket-server": "^0.5.0",
+		"@types/node": "^11.13.0",
+		"vscode": "^1.1.33"
+	},
+	"scripts": {
+		"dev": "tsc --watch"
+	},
+	"activationEvents": [
+		"*"
+	],
+	"main": "./dist/extension.js",
+	"engines": {
+		"vscode": "^1.30.0"
+	}
+}
