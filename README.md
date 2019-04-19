@@ -155,7 +155,7 @@ export function getSteps(): Steps {
 }
 ```
 
-There is also a vscode extension that displays the current executation state:
+There is also the [vscode extension "Node Reload Steps Execution State Visualizer"](https://marketplace.visualstudio.com/items?itemName=hediet.node-reload-steps-vscode) that displays the current executation state when debugging such an application:
 
 ![Execution state](./StepsVsCode/docs/demo-vscode-steps1.gif)
 
