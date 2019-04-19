@@ -164,7 +164,7 @@ export class Extension extends DisposableComponent {
 		const e = vscode.debug.activeDebugSession;
 		if (e) {
 			try {
-				await wait(300);
+				await wait(500);
 				const r = await e.customRequest("evaluate", {
 					expression: `${this.debuggerConnectionExpr}.connectTo(${
 						Server.instance.port

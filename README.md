@@ -33,7 +33,7 @@ import { enableHotReload, hotRequire } from "@hediet/node-reload";
 enableHotReload();
 
 hotRequire<typeof import("./dep")>(module, "./dep", cur => {
-	// Runs immediately or when `dep` (or any sub dependency of `dep`) changes.
+	// Runs immediately or when `dep` (or any dependency of `dep`) changes.
 	console.log("value of x: ", cur.x);
 });
 ```
@@ -74,7 +74,7 @@ if (getReloadCount(module) === 0) {
 
 ### Vs Code Extension Reloading
 
-With `hotRequireExportedFn` you can easily make your VS Code Extension really hot.
+With `hotRequireExportedFn` you can easily make your VS Code Extension really hot. Note how the status bar updates:
 
 ![](./docs/demo-vscode.gif)
 
@@ -97,13 +97,9 @@ export class Extension extends DisposableComponent {
 		super();
 
 		// Disposables are disposed automatically on reload.
-		if (getReloadCount(module) > 0) {
-			this.trackDisposable(
-				vscode.window.setStatusBarMessage(
-					"Reloads: " + getReloadCount(module)
-				)
-			);
-		}
+		const item = this.trackDisposable(vscode.window.createStatusBarItem());
+		item.text = "Hallo Welt";
+		item.show();
 	}
 }
 
@@ -114,16 +110,18 @@ export function activate(context: vscode.ExtensionContext) {
 }
 ```
 
-### Steps Updater
+### Steps Execution System
 
-The steps updater is especially useful in connection with `puppeteer`. See the `./examples` folder on how to use this with `puppeteer`.
+The steps execution system is especially useful in connection with `puppeteer`. See the `./examples` folder on how to use this with `puppeteer`.
+
+The system however is independent from any libraries:
 
 ```ts
 enableHotReload();
 registerUpdateReconciler(module);
-// Runs the given steps and applies updates by undoing already executed steps and running the new steps.
+// Runs the given steps and applies updates by unwinding already executed steps and running the new steps.
 // Unchanged last steps are run on initial load,
-// undone when steps before them change, but only run again when they or a step after them changes.
+// unwound when steps before them change, but only run again when they or a step after them changes.
 // This way you can edit and hot reload intermediate steps without running all steps again after every change.
 runExportedSteps(module, getSteps);
 
@@ -131,30 +129,25 @@ export function getSteps(): Steps {
 	return steps(
 		{
 			id: "start",
-			do: async (args, { onUndo }) => {
-				console.log("start");
-				onUndo(async () => console.log("undo start"));
-				return {
-					data: 5,
-				};
+			run: async (args, { onRewind }) => {
+				await slowLog("start");
+				onRewind(() => slowLog("undo start"));
+				return { data: 9 };
 			},
 		},
 		{
 			id: "continue1",
-			do: async (args, { onUndo }) => {
-				console.log("continue 1");
-				onUndo(async () => console.log("undo 1"));
-				return {
-					data2: 10,
-					...args,
-				};
+			run: async (args, { onRewind }) => {
+				await slowLog("continue 1");
+				onRewind(() => slowLog("undo 1"));
+				return { data2: 10, ...args };
 			},
 		},
 		{
 			id: "continue2",
-			do: async (args, { onUndo }) => {
-				console.log("continue 2", args.data2, args.data);
-				onUndo(async () => console.log("undo 2"));
+			run: async (args, { onRewind }) => {
+				await slowLog("continue 2");
+				onRewind(() => slowLog("undo 2"));
 				return {};
 			},
 		}
@@ -162,9 +155,17 @@ export function getSteps(): Steps {
 }
 ```
 
+There is also a vscode extension that displays the current executation state:
+
+![Execution state](./docs/demo-vscode-steps1.gif)
+
+You can even use vscode to run a specific step:
+
+![Move to step](./docs/demo-vscode-steps2.gif)
+
 ## Similar libs
 
--   [node-hot](https://github.com/mihe/node-hot): Inspired this library. Does not have the concept of reconcilation and any kind of update reconciler.
+-   [node-hot](https://github.com/mihe/node-hot): Inspired this library.
 
 ## Changelog
 

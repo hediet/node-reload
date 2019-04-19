@@ -37,7 +37,7 @@ export function getSteps(): Steps {
 		{
 			id: "continue2",
 			run: async (args, { onRewind }) => {
-				await slowLog("continue 2 XX");
+				await slowLog("continue 2");
 				onRewind(() => slowLog("undo 2"));
 				return {};
 			},

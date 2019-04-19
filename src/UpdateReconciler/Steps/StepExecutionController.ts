@@ -52,7 +52,6 @@ export class StepExecutionController extends DisposableComponent {
 
 	public async moveTo(stepId: string): Promise<void> {
 		const idx = this.currentSteps.findIndex(s => s.step.id === stepId);
-		console.log("move to ", stepId);
 		if (idx < 0) {
 			return;
 		}

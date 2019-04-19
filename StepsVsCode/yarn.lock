@@ -2,12 +2,14 @@
 # yarn lockfile v1
 
 
-"@hediet/node-reload@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@hediet/node-reload/-/node-reload-0.2.0.tgz#097745a9397ed0ef3b4f68c07bfba4b146a7873f"
-  integrity sha512-qEYUH+RZOVWax5EeuVRQR63yXiv4HPFzasH2zkDMKUO53IzgHtZ3tMsJI8MfTyfNw7DeHIhW3pKxU4CUwuJmfQ==
+"@hediet/node-reload@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@hediet/node-reload/-/node-reload-0.3.0.tgz#5efe323b956713208013bc675fcb1aa5c1180ee4"
+  integrity sha512-fAUxlOFth6ZHYiVagYTkq+29+K2paGs/x4aqhz/B4fD0CJQV7i3P+f1s3hPgxvFbF3sKAh87S8D8S954QpZU0w==
   dependencies:
-    "@hediet/std" "^0.3.0"
+    "@hediet/std" "^0.4.0"
+    "@hediet/typed-json-rpc" "^0.5.0"
+    "@hediet/typed-json-rpc-websocket" "^0.5.0"
     "@types/esprima" "^4.0.2"
     "@types/estree" "^0.0.39"
     "@types/node" "^11.13.0"
@@ -16,21 +18,12 @@
     chokidar "^2.1.5"
     esprima "^4.0.1"
     stack-trace "^0.0.10"
+    ws "^6.2.1"
 
 "@hediet/std@^0.2.0":
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/@hediet/std/-/std-0.2.1.tgz#758cdeedb87639d7b83bdd3c9c620e41f1e7df1d"
   integrity sha512-YUL/KGOaXDd1PB0D9J4V6GE+QrdHX/CyPkosCINHSSM3sePbw2vVY+VRxFlZ7BtLzlNe3dacbHpFbK6xPIfPuw==
-  dependencies:
-    "@types/chai" "^4.1.7"
-    "@types/sinon" "^7.0.10"
-    chai "^4.2.0"
-    sinon "^7.2.7"
-
-"@hediet/std@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@hediet/std/-/std-0.3.0.tgz#d0ac8978cdbefdfaa09e5241b9a465df39dfac4c"
-  integrity sha512-wRmzmOkVbm/xX8vhFv5F3Re2GX7rOQycX9yj+ZxGIAprD8tKMRGTkQS25f7nxd8/LsDIX7blCjeB2Ov6WrhPLw==
   dependencies:
     "@types/chai" "^4.1.7"
     "@types/sinon" "^7.0.10"
@@ -47,7 +40,7 @@
     chai "^4.2.0"
     sinon "^7.2.7"
 
-"@hediet/typed-json-rpc-websocket-server@^0.5.0":
+"@hediet/typed-json-rpc-websocket-server@^0.5.1":
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/@hediet/typed-json-rpc-websocket-server/-/typed-json-rpc-websocket-server-0.5.1.tgz#58804ee9c19d7461438421143a1ea8cd8434d2fa"
   integrity sha512-hLj+m00EiTCzlc0t3eG7ruT1otE45UfyfqdYHxnK2tc6M6rp6RONlpOje1QBDwEB4vkWpt/E+1DOX+C/rYH4ng==
@@ -56,6 +49,15 @@
     "@hediet/typed-json-rpc" "^0.5.0"
     "@types/ws" "^6.0.1"
     ws "^6.2.0"
+
+"@hediet/typed-json-rpc-websocket@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@hediet/typed-json-rpc-websocket/-/typed-json-rpc-websocket-0.5.0.tgz#ac537de8f2c9849936fd78b44fe8f7ebad7df37e"
+  integrity sha512-SOfAb+Mu2SRqXsFO5UTKwibV/TMD9jINjUS8gjJkNGv3nXGo5NweC17tMf3dxVPfp3cBiLZsa4EOkgGG99sSVA==
+  dependencies:
+    "@hediet/typed-json-rpc" "^0.5.0"
+    "@types/ws" "^6.0.1"
+    isomorphic-ws "^4.0.1"
 
 "@hediet/typed-json-rpc@^0.5.0":
   version "0.5.0"
@@ -1072,6 +1074,11 @@ isobject@^3.0.0, isobject@^3.0.1:
   resolved "https://registry.yarnpkg.com/isobject/-/isobject-3.0.1.tgz#4e431e92b11a9731636aa1f9c8d1ccbcfdab78df"
   integrity sha1-TkMekrEalzFjaqH5yNHMvP2reN8=
 
+isomorphic-ws@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/isomorphic-ws/-/isomorphic-ws-4.0.1.tgz#55fd4cd6c5e6491e76dc125938dd863f5cd4f2dc"
+  integrity sha512-BhBvN2MBpWTaSHdWRb/bwdZJ1WaehQ2L1KngkCkfLUGF0mAWAT1sQUQacEmQ0jXkFw/czDXPNQSL5u2/Krsz1w==
+
 isstream@~0.1.2:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/isstream/-/isstream-0.1.2.tgz#47e63f7af55afa6f92e1500e690eb8b8529c099a"
@@ -1990,7 +1997,7 @@ wrappy@1:
   resolved "https://registry.yarnpkg.com/wrappy/-/wrappy-1.0.2.tgz#b5243d8f3ec1aa35f1364605bc0d1036e30ab69f"
   integrity sha1-tSQ9jz7BqjXxNkYFvA0QNuMKtp8=
 
-ws@^6.2.0:
+ws@^6.2.0, ws@^6.2.1:
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/ws/-/ws-6.2.1.tgz#442fdf0a47ed64f59b6a5d8ff130f4748ed524fb"
   integrity sha512-GIyAXC2cB7LjvpgMt9EKS2ldqr0MTrORaleiOno6TweZ6r3TKtoFQWay/2PceJ3RuBasOHzXNn5Lrw1X0bEjqA==
