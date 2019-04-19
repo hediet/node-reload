@@ -1,5 +1,7 @@
 # Hot Reloading for NodeJS - Step Execution State Visualizer
 
+[![](https://img.shields.io/twitter/follow/hediet_dev.svg?style=social)](https://twitter.com/intent/follow?screen_name=hediet_dev)
+
 This is the vscode extension for `@hediet/node-reload`.
 
 It displays the current executation state when **simply debugging**
