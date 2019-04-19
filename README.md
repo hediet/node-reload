@@ -4,6 +4,15 @@
 
 A thoughtfully designed library that brings advanced hot reloading to NodeJS.
 
+## Features
+
+-   Tracks a dependency graph (files in `node_modules` and there like can be ignored).
+-   Tracked files are watched for changes.
+-   If a file has changed, reconcilers try to apply the change to the running app on a module basis.
+-   If a reconciler is not successful, the reconcilers of the dependees are asked to apply the change.
+-   The `Update Reconciler` provides functions to propagate reloaded items to the original items.
+-   The `Steps Execution System` implements function level hot reload.
+
 ## Usage
 
 ### Installation
