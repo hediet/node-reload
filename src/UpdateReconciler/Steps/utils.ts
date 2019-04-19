@@ -1,3 +1,41 @@
+export function areEqualConsideringFunctionSource(
+	o1: unknown,
+	o2: unknown
+): boolean {
+	if (typeof o1 === "function" && typeof o2 === "function") {
+		return o1.toString() === o2.toString();
+	}
+
+	if (typeof o1 === "object" && typeof o2 === "object") {
+		if (o1 === null) {
+			return o2 === null;
+		}
+		if (o2 === null) {
+			return false;
+		}
+		for (const entry of diffObjectsKeys(o1, o2)) {
+			if (!areEqualConsideringFunctionSource(entry.val1, entry.val2)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	if (Array.isArray(o1) && Array.isArray(o2)) {
+		if (o1.length !== o2.length) {
+			return false;
+		}
+		for (let i = 0; i < o1.length; i++) {
+			if (!areEqualConsideringFunctionSource(o1[i], o2[i])) {
+				return false;
+			}
+		}
+		return false;
+	}
+
+	return o1 == o2;
+}
+
 export type DiffTuple<T1, T2> = { key: string; val1: T1; val2: T2 };
 export type KeyDiff<T> =
 	| DiffTuple<T, T>

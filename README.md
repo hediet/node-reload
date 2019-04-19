@@ -23,7 +23,8 @@ Works best with TypeScript.
 
 ### Plain Hot Require
 
-`hotRequire` is the way to go if you just want to watch a module for changes.
+`hotRequire` is the way to go if you just want to watch
+a module and its dependencies for changes.
 
 ```ts
 import { enableHotReload, hotRequire } from "@hediet/node-reload";
@@ -94,10 +95,15 @@ registerUpdateReconciler(module);
 export class Extension extends DisposableComponent {
 	constructor() {
 		super();
+
 		// Disposables are disposed automatically on reload.
-		const item = this.trackDisposable(vscode.window.createStatusBarItem());
-		item.text = "Hallo Welt";
-		item.show();
+		if (getReloadCount(module) > 0) {
+			this.trackDisposable(
+				vscode.window.setStatusBarMessage(
+					"Reloads: " + getReloadCount(module)
+				)
+			);
+		}
 	}
 }
 

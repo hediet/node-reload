@@ -3,7 +3,7 @@ import {
 	hotRequireExportedFn,
 	registerUpdateReconciler,
 	getReloadCount,
-} from "../../dist";
+} from "@hediet/node-reload";
 import { DisposableComponent } from "@hediet/std/disposable";
 import { wait } from "@hediet/std/timer";
 import * as vscode from "vscode";
@@ -94,6 +94,11 @@ export class Extension extends DisposableComponent {
 		if (!editor) {
 			return;
 		}
+		if (this.stepStates.length === 0) {
+			editor.setDecorations(this.decorationType, []);
+			return;
+		}
+
 		const idByLine: { id: string; line: number; text: string }[] = [];
 
 		const txt = editor.document.getText();
@@ -152,6 +157,26 @@ export class Extension extends DisposableComponent {
 		);
 	}
 
+	private readonly debuggerConnectionExpr =
+		"global['@hediet/node-reload/DebuggerConnection'].instance";
+
+	private async connectClient(): Promise<void> {
+		const e = vscode.debug.activeDebugSession;
+		if (e) {
+			try {
+				await wait(300);
+				const r = await e.customRequest("evaluate", {
+					expression: `${this.debuggerConnectionExpr}.connectTo(${
+						Server.instance.port
+					});`,
+				});
+			} catch (e) {
+				console.error(e);
+			}
+		}
+		this.updateText();
+	}
+
 	private async runStep(
 		stepId: string,
 		controllerId?: number
@@ -159,37 +184,14 @@ export class Extension extends DisposableComponent {
 		const e = vscode.debug.activeDebugSession;
 		if (e) {
 			try {
-				// @hediet/node-reload
-				const modulePath = "../../dist";
-				const method = "DebuggerConnection.instance.runToStepIncluding";
 				const r = await e.customRequest("evaluate", {
-					expression: `require('${modulePath}').${method}("${stepId}");`,
+					expression: `${
+						this.debuggerConnectionExpr
+					}.runToStepIncluding("${stepId}");`,
 				});
-				console.log(r);
 			} catch (e) {
 				console.error(e);
 			}
 		}
-	}
-
-	private async connectClient(): Promise<void> {
-		const e = vscode.debug.activeDebugSession;
-		if (e) {
-			try {
-				await wait(300);
-				// @hediet/node-reload
-				const modulePath = "../../dist";
-				const connectMethod = "DebuggerConnection.instance.connectTo";
-				const r = await e.customRequest("evaluate", {
-					expression: `require('${modulePath}').${connectMethod}(${
-						Server.instance.port
-					});`,
-				});
-				console.log(r);
-			} catch (e) {
-				console.error(e);
-			}
-		}
-		this.updateText();
 	}
 }

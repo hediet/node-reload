@@ -15,7 +15,7 @@ export function getSteps(): Steps {
 	return steps(
 		{
 			id: "Setup",
-			do: async (args, { onUndo }) => {
+			run: async (args, { onRewind }) => {
 				const browser = await puppeteer.launch({
 					slowMo: 10,
 					devtools: true,
@@ -24,7 +24,7 @@ export function getSteps(): Steps {
 				});
 				const page = await browser.newPage();
 
-				onUndo(() => browser.close());
+				onRewind(() => browser.close());
 
 				return {
 					browser,
@@ -34,7 +34,7 @@ export function getSteps(): Steps {
 		},
 		{
 			id: "Login",
-			do: async args => {
+			run: async args => {
 				const page = args.page;
 				await page.goto("https://demo.moodle.net/login/index.php");
 				await page.type("#username", "admin");
@@ -48,7 +48,7 @@ export function getSteps(): Steps {
 		},
 		{
 			id: "OpenCalendarAndOpenNewEvent",
-			do: async args => {
+			run: async args => {
 				const page = args.page;
 				await page.goto(
 					"https://demo.moodle.net/calendar/view.php?view=month"
@@ -59,7 +59,7 @@ export function getSteps(): Steps {
 		},
 		{
 			id: "FillNewEventData",
-			do: async args => {
+			run: async args => {
 				const page = args.page;
 				await page.waitFor("#id_name");
 				await page.click("#id_name", { clickCount: 3 });
@@ -71,7 +71,7 @@ export function getSteps(): Steps {
 		},
 		{
 			id: "SaveNewEventData",
-			do: async args => {
+			run: async args => {
 				const page = args.page;
 				await page.click("[data-action='save']");
 				return args;

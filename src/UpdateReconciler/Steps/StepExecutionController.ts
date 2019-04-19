@@ -1,14 +1,34 @@
 import { DisposableComponent } from "@hediet/std/disposable";
 import { EventEmitter } from "@hediet/std/events";
-import { diffObjectsKeys } from "./utils";
-import { StepData, StepState, Steps, Step } from "./steps";
+import { areEqualConsideringFunctionSource } from "./utils";
+import { Step, Steps } from ".";
 
-export class Controller extends DisposableComponent {
+interface StepData {
+	step: Step;
+	state:
+		| { kind: "ran"; undos: (() => Promise<void>)[]; result: unknown }
+		| { kind: "running" }
+		| { kind: "notRun" }
+		| { kind: "undone" }
+		| { kind: "undoing" };
+}
+
+export interface StepState {
+	id: string;
+	state:
+		| { kind: "ran"; result: unknown }
+		| { kind: "running" }
+		| { kind: "notRun" }
+		| { kind: "undone" }
+		| { kind: "undoing" };
+}
+
+export class StepExecutionController extends DisposableComponent {
 	private lastRanStepIdx: number = -1;
 	private currentSteps = new Array<StepData>();
 	private stepStatesChangedEmitter = new EventEmitter<
 		StepState[],
-		Controller
+		StepExecutionController
 	>();
 
 	public readonly onStepStatesChanged = this.stepStatesChangedEmitter.asEvent();
@@ -55,8 +75,8 @@ export class Controller extends DisposableComponent {
 			nextStep.state = { kind: "running" };
 			this.stepDataChanged();
 			const undos = new Array<() => Promise<void>>();
-			const result = await nextStep.step.do(arg, {
-				onUndo: fn => undos.push(fn),
+			const result = await nextStep.step.run(arg, {
+				onRewind: fn => undos.push(fn),
 			});
 			nextStep.state = { kind: "ran", result, undos };
 			this.stepDataChanged();
@@ -100,7 +120,7 @@ export class Controller extends DisposableComponent {
 			if (!s1 || !s2) {
 				return false;
 			}
-			return this.areEqual(s1.step, s2);
+			return areEqualConsideringFunctionSource(s1.step, s2);
 		};
 
 		let unchangedCountStart = 0;
@@ -122,40 +142,5 @@ export class Controller extends DisposableComponent {
 		}
 
 		return { unchangedCountStart, unchangedCountEnd };
-	}
-
-	private areEqual(o1: unknown, o2: unknown): boolean {
-		if (typeof o1 === "function" && typeof o2 === "function") {
-			return o1.toString() === o2.toString();
-		}
-
-		if (typeof o1 === "object" && typeof o2 === "object") {
-			if (o1 === null) {
-				return o2 === null;
-			}
-			if (o2 === null) {
-				return false;
-			}
-			for (const entry of diffObjectsKeys(o1, o2)) {
-				if (!this.areEqual(entry.val1, entry.val2)) {
-					return false;
-				}
-			}
-			return true;
-		}
-
-		if (Array.isArray(o1) && Array.isArray(o2)) {
-			if (o1.length !== o2.length) {
-				return false;
-			}
-			for (let i = 0; i < o1.length; i++) {
-				if (!this.areEqual(o1[i], o2[i])) {
-					return false;
-				}
-			}
-			return false;
-		}
-
-		return o1 == o2;
 	}
 }

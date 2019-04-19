@@ -1,8 +1,7 @@
 import { WebSocketStream } from "@hediet/typed-json-rpc-websocket";
 import { array, type, string, literal, union, Integer } from "io-ts";
 import { contract, notificationContract } from "@hediet/typed-json-rpc";
-import { StepState } from "./steps";
-import { Controller } from "./Controller";
+import { StepExecutionController, StepState } from "./StepExecutionController";
 import { Disposable, DisposableComponent } from "@hediet/std/disposable";
 
 const stepState = type({
@@ -16,9 +15,7 @@ const stepState = type({
 	]),
 });
 
-export type SimpleStepState = typeof stepState["_A"];
-
-export const stepsContract = contract({
+export const debuggerConnectionContract = contract({
 	server: {
 		updateState: notificationContract({
 			params: type({
@@ -33,13 +30,13 @@ export const stepsContract = contract({
 export class DebuggerConnection {
 	public static readonly instance = new DebuggerConnection();
 	private controllerId = 0;
-	private readonly controllers = new Map<number, Controller>();
+	private readonly controllers = new Map<number, StepExecutionController>();
 	private readonly servers = new Set<{
-		server: typeof stepsContract.TServerInterface;
+		server: typeof debuggerConnectionContract.TServerInterface;
 		stream: WebSocketStream;
 	}>();
 
-	public registerController(controller: Controller): Disposable {
+	public registerController(controller: StepExecutionController): Disposable {
 		return new DisposableComponent(track => {
 			const controllerId = this.controllerId++;
 			this.controllers.set(controllerId, controller);
@@ -73,7 +70,7 @@ export class DebuggerConnection {
 			host: "localhost",
 			port: serverPort,
 		});
-		const { server } = stepsContract.getServerFromStream(
+		const { server } = debuggerConnectionContract.getServerFromStream(
 			stream,
 			undefined,
 			{}
@@ -98,3 +95,5 @@ export class DebuggerConnection {
 		}
 	}
 }
+
+(global as any)["@hediet/node-reload/DebuggerConnection"] = DebuggerConnection;

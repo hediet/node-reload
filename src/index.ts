@@ -6,5 +6,6 @@ export {
 	ReconcileContext,
 	Reconciler,
 	UpdateReason,
-	nodeModuleReconcilerProperty,
+	getModuleReconciler,
+	setModuleReconciler,
 } from "./Reconciler";

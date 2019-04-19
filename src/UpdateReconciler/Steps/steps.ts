@@ -1,21 +1,28 @@
-import { getReloadCount, hotRequireExportedFn } from "../updateReconciler";
-import { Controller } from "./Controller";
+import { getReloadCount, hotRequireExportedFn } from "..";
+import { StepExecutionController } from "./StepExecutionController";
 import { DebuggerConnection } from "./DebuggerConnection";
-
-export interface StepContext {
-	onUndo(undoFn: () => Promise<any>): void;
-}
-
-export interface Step<A = unknown, B = unknown> {
-	id: string;
-	uses?: unknown;
-	do: (args: A, context: StepContext) => Promise<B>;
-}
 
 export interface Steps {
 	steps: Step<unknown, unknown>[];
 }
 
+export interface Step<A = unknown, B = unknown> {
+	id: string;
+	uses?: unknown;
+	run: (args: A, context: StepContext) => Promise<B>;
+}
+
+export interface StepContext {
+	/**
+	 * Registers `rewindFn` to be run when the step is rewinded.
+	 */
+	onRewind(rewindFn: () => Promise<any>): void;
+}
+
+/**
+ * Describes a sequence of steps.
+ * Each step can use the result of the previous step.
+ */
 export function steps<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
 	step0: Step<{}, T1>,
 	step1: Step<T1, T2>,
@@ -44,29 +51,9 @@ export function steps<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
 	};
 }
 
-export interface StepData {
-	step: Step;
-	state:
-		| { kind: "ran"; undos: (() => Promise<void>)[]; result: unknown }
-		| { kind: "running" }
-		| { kind: "notRun" }
-		| { kind: "undone" }
-		| { kind: "undoing" };
-}
-
-export interface StepState {
-	id: string;
-	state:
-		| { kind: "ran"; result: unknown }
-		| { kind: "running" }
-		| { kind: "notRun" }
-		| { kind: "undone" }
-		| { kind: "undoing" };
-}
-
 export function runExportedSteps(module: NodeModule, factory: () => Steps) {
 	if (getReloadCount(module) === 0) {
-		const controller = new Controller();
+		const controller = new StepExecutionController();
 		DebuggerConnection.instance.registerController(controller);
 
 		hotRequireExportedFn(module, factory, factory => {

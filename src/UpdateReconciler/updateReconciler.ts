@@ -1,6 +1,6 @@
 import { Disposable, DisposableLike, dispose } from "@hediet/std/disposable";
 import { AttachedProperty } from "@hediet/std/extensibility";
-import { nodeModuleReconcilerProperty } from "../Reconciler";
+import { setModuleReconciler } from "../Reconciler";
 
 interface ModuleInfo {
 	updaters: Set<Updater>;
@@ -35,7 +35,7 @@ export function registerUpdateReconciler(module: NodeModule) {
 			disposables: [],
 		});
 	}
-	nodeModuleReconcilerProperty.set(module, context => {
+	setModuleReconciler(module, context => {
 		const info = moduleInfoProperty.get(module);
 		if (!info) {
 			throw new Error("Impossible");

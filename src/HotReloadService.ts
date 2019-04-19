@@ -6,7 +6,7 @@ import {
 	UpdateReason,
 	ReconcileContext,
 	nodeModuleSourceProperty,
-	nodeModuleReconcilerProperty,
+	getModuleReconciler,
 } from "./Reconciler";
 
 export class HotReloadService {
@@ -324,7 +324,7 @@ class ReconcilableNodeModule extends ReconcilableModule {
 	}
 
 	private reconcile(context: ReconcileContext): boolean {
-		const r = nodeModuleReconcilerProperty.get(this.module);
+		const r = getModuleReconciler(this.module);
 		if (r) {
 			return r(context);
 		}

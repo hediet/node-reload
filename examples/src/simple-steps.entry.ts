@@ -20,27 +20,25 @@ export function getSteps(): Steps {
 	return steps(
 		{
 			id: "start",
-			do: async (args, { onUndo }) => {
+			run: async (args, { onRewind }) => {
 				await slowLog("start");
-				onUndo(() => slowLog("undo start"));
-				return {
-					data: 9,
-				};
+				onRewind(() => slowLog("undo start"));
+				return { data: 9 };
 			},
 		},
 		{
 			id: "continue1",
-			do: async (args, { onUndo }) => {
+			run: async (args, { onRewind }) => {
 				await slowLog("continue 1");
-				onUndo(() => slowLog("undo 1"));
+				onRewind(() => slowLog("undo 1"));
 				return { data2: 10, ...args };
 			},
 		},
 		{
 			id: "continue2",
-			do: async (args, { onUndo }) => {
+			run: async (args, { onRewind }) => {
 				await slowLog("continue 2 XX");
-				onUndo(() => slowLog("undo 2"));
+				onRewind(() => slowLog("undo 2"));
 				return {};
 			},
 		}

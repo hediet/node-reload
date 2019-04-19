@@ -18,13 +18,24 @@ export interface ReconcileContext extends UpdateReason {
 
 export type Reconciler = (context: ReconcileContext) => boolean;
 
-/**
- * Unstable.
- */
-export const nodeModuleReconcilerProperty = new AttachedProperty<
+const nodeModuleReconcilerProperty = new AttachedProperty<
 	NodeModule,
 	Reconciler | undefined
 >(() => undefined);
+
+/**
+ * @unstable
+ */
+export function setModuleReconciler(
+	module: NodeModule,
+	reconciler: Reconciler | undefined
+) {
+	nodeModuleReconcilerProperty.set(module, reconciler);
+}
+
+export function getModuleReconciler(module: NodeModule) {
+	return nodeModuleReconcilerProperty.get(module);
+}
 
 export const nodeModuleSourceProperty = new AttachedProperty<
 	NodeModule,

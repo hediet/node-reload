@@ -1,5 +1,5 @@
 import { startWebSocketServer } from "@hediet/typed-json-rpc-websocket-server";
-import { stepsContract } from "../../dist";
+import { debuggerConnectionContract } from "@hediet/node-reload";
 import { DisposableComponent } from "@hediet/std/disposable";
 import { EventEmitter } from "@hediet/std/events";
 
@@ -23,16 +23,20 @@ export class Server extends DisposableComponent {
 			startWebSocketServer({ port: 0 }, stream => {
 				const clientState = { state: new Array<StepState>() };
 				clients.add(clientState);
-				stepsContract.registerServerToStream(stream, undefined, {
-					updateState: ({ newState }) => {
-						clientState.state = newState;
-						this.stepStatesChangedEmitter.emit(
-							new Array<StepState>().concat(
-								...[...clients].map(c => c.state)
-							)
-						);
-					},
-				});
+				debuggerConnectionContract.registerServerToStream(
+					stream,
+					undefined,
+					{
+						updateState: ({ newState }) => {
+							clientState.state = newState;
+							this.stepStatesChangedEmitter.emit(
+								new Array<StepState>().concat(
+									...[...clients].map(c => c.state)
+								)
+							);
+						},
+					}
+				);
 				stream.onClosed.then(() => {
 					clients.delete(clientState);
 					this.stepStatesChangedEmitter.emit(

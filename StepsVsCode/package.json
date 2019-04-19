@@ -1,12 +1,17 @@
 {
 	"name": "node-reload-steps-vscode",
-	"version": "1.0.0",
+	"author": {
+		"name": "Henning Dieterichs",
+		"email": "henning.dieterichs@live.de"
+	},
+	"description": "Displays the current state of the Step Execution Controller from '@hediet/node-reload' next to the code",
+	"version": "0.1.0",
 	"license": "MIT",
 	"dependencies": {
 		"@hediet/node-reload": "^0.2.0",
 		"@hediet/std": "^0.4.0",
 		"@hediet/typed-json-rpc": "^0.5.0",
-		"@hediet/typed-json-rpc-websocket-server": "^0.5.0",
+		"@hediet/typed-json-rpc-websocket-server": "^0.5.1",
 		"@types/node": "^11.13.0",
 		"vscode": "^1.1.33"
 	},
@@ -14,7 +19,8 @@
 		"dev": "tsc --watch"
 	},
 	"activationEvents": [
-		"*"
+		"onLanguage:typescript",
+		"onCommand:node-reload-steps-vscode.run"
 	],
 	"main": "./dist/extension.js",
 	"engines": {

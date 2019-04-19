@@ -1,12 +1,12 @@
-import { enableHotReload, nodeModuleReconcilerProperty } from "../../dist";
+import { enableHotReload, setModuleReconciler } from "../../dist";
 
 export let x = "";
 
 enableHotReload({ loggingEnabled: false });
 
-// Use `nodeModuleReconcilerProperty` to implement custom reconcilers.
+// Use `setModuleReconciler` to implement custom reconcilers.
 // Do this only if the `UpdateReconciler` is not sufficient!
-nodeModuleReconcilerProperty.set(module, ctx => {
+setModuleReconciler(module, ctx => {
 	if (ctx.dependencyUpdates.size >= 0) {
 		return false;
 	}
