@@ -1,10 +1,19 @@
 {
 	"name": "node-reload-steps-vscode",
+	"displayName": "Node Reload Steps Execution State Visualizer",
+	"description": "Displays the current state of the Step Execution Controller from '@hediet/node-reload' next to the code",
+	"icon": "docs/logo.png",
 	"author": {
 		"name": "Henning Dieterichs",
 		"email": "henning.dieterichs@live.de"
 	},
-	"description": "Displays the current state of the Step Execution Controller from '@hediet/node-reload' next to the code",
+	"publisher": "hediet",
+	"readme": "./README.md",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/hediet/node-reload.git"
+	},
+	"homepage": "https://github.com/hediet/node-reload",
 	"version": "0.1.0",
 	"license": "MIT",
 	"dependencies": {

@@ -157,11 +157,11 @@ export function getSteps(): Steps {
 
 There is also a vscode extension that displays the current executation state:
 
-![Execution state](./docs/demo-vscode-steps1.gif)
+![Execution state](./StepsVsCode/docs/demo-vscode-steps1.gif)
 
 You can even use vscode to run a specific step:
 
-![Move to step](./docs/demo-vscode-steps2.gif)
+![Move to step](./StepsVsCode/docs/demo-vscode-steps2.gif)
 
 ## Similar libs
 

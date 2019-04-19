@@ -9,7 +9,12 @@ import { wait } from "@hediet/std/timer";
 import * as vscode from "vscode";
 import { Server } from "./server";
 
-enableHotReload({ entryModule: module });
+const debug =
+	process.execArgv.filter(v => v.indexOf("--inspect-brk") === 0).length > 0;
+if (debug) {
+	enableHotReload({ entryModule: module });
+}
+
 registerUpdateReconciler(module);
 
 export function activate(context: vscode.ExtensionContext) {
@@ -162,7 +167,7 @@ export class Extension extends DisposableComponent {
 
 	private async connectClient(): Promise<void> {
 		const e = vscode.debug.activeDebugSession;
-		if (e) {
+		if (e && (e.type === "node" || e.type === "node2")) {
 			try {
 				await wait(500);
 				const r = await e.customRequest("evaluate", {
