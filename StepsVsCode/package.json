@@ -17,11 +17,13 @@
 	"version": "0.1.0",
 	"license": "MIT",
 	"dependencies": {
-		"@hediet/node-reload": "^0.3.0",
+		"@hediet/node-reload": "^0.3.1",
 		"@hediet/std": "^0.4.0",
 		"@hediet/typed-json-rpc": "^0.5.0",
 		"@hediet/typed-json-rpc-websocket-server": "^0.5.1",
-		"@types/node": "^11.13.0",
+		"@types/node": "^11.13.0"
+	},
+	"devDependencies": {
 		"vscode": "^1.1.33"
 	},
 	"scripts": {

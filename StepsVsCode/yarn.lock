@@ -2,17 +2,17 @@
 # yarn lockfile v1
 
 
-"@hediet/node-reload@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@hediet/node-reload/-/node-reload-0.3.0.tgz#5efe323b956713208013bc675fcb1aa5c1180ee4"
-  integrity sha512-fAUxlOFth6ZHYiVagYTkq+29+K2paGs/x4aqhz/B4fD0CJQV7i3P+f1s3hPgxvFbF3sKAh87S8D8S954QpZU0w==
+"@hediet/node-reload@^0.3.1":
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/@hediet/node-reload/-/node-reload-0.3.1.tgz#3422d598176c02fdd4a7d8f277c5a520cb993ec0"
+  integrity sha512-JB2m+f9cpw4CrEyLeXYJnp6nq/u8WbMKYRy2qSYz/7guScl4ChoAhGOFltXD2sMCO3VarFmH3sx4pFMYr1/Aqg==
   dependencies:
     "@hediet/std" "^0.4.0"
     "@hediet/typed-json-rpc" "^0.5.0"
     "@hediet/typed-json-rpc-websocket" "^0.5.0"
     "@types/esprima" "^4.0.2"
     "@types/estree" "^0.0.39"
-    "@types/node" "^11.13.0"
+    "@types/node" "^11.13.5"
     "@types/puppeteer-core" "^1.9.0"
     "@types/stack-trace" "^0.0.29"
     chokidar "^2.1.5"
@@ -117,7 +117,7 @@
   resolved "https://registry.yarnpkg.com/@types/events/-/events-3.0.0.tgz#2862f3f58a9a7f7c3e78d79f130dd4d71c25c2a7"
   integrity sha512-EaObqwIvayI5a8dCzhFrjKzVwKLxjoG9T6Ppd5CEo07LRKfQ8Yokw54r5+Wq7FaBQ+yXRvQAYPrHwya1/UFt9g==
 
-"@types/node@*", "@types/node@^11.13.0":
+"@types/node@*", "@types/node@^11.13.0", "@types/node@^11.13.5":
   version "11.13.5"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-11.13.5.tgz#266564afa8a6a09dc778dfacc703ed3f09c80516"
   integrity sha512-/OMMBnjVtDuwX1tg2pkYVSqRIDSmNTnvVvmvP/2xiMAAWf4a5+JozrApCrO4WCAILmXVxfNoQ3E+0HJbNpFVGg==
