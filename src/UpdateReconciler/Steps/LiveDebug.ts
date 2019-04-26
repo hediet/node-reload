@@ -1,8 +1,8 @@
-import { WebSocketStream } from "@hediet/typed-json-rpc-websocket";
 import { array, type, string, literal, union, Integer } from "io-ts";
 import { contract, notificationContract } from "@hediet/typed-json-rpc";
 import { StepExecutionController, StepState } from "./StepExecutionController";
 import { Disposable, DisposableComponent } from "@hediet/std/disposable";
+import { registerLiveDebug } from "@hediet/live-debug";
 
 const stepState = type({
 	id: string,
@@ -15,7 +15,7 @@ const stepState = type({
 	]),
 });
 
-export const debuggerConnectionContract = contract({
+export const liveDebugContract = contract({
 	server: {
 		updateState: notificationContract({
 			params: type({
@@ -24,17 +24,41 @@ export const debuggerConnectionContract = contract({
 			}),
 		}),
 	},
-	client: {},
+	client: {
+		runToStepIncluding: notificationContract({
+			params: type({
+				stepId: string,
+			}),
+		}),
+	},
 });
 
-export class DebuggerConnection {
-	public static readonly instance = new DebuggerConnection();
+export class LiveDebug {
+	public static readonly instance = new LiveDebug();
 	private controllerId = 0;
 	private readonly controllers = new Map<number, StepExecutionController>();
 	private readonly servers = new Set<{
-		server: typeof debuggerConnectionContract.TServerInterface;
-		stream: WebSocketStream;
+		server: typeof liveDebugContract.TServerInterface;
 	}>();
+
+	constructor() {
+		registerLiveDebug((channel, onClosed) => {
+			const { server } = liveDebugContract.getServer(channel, {
+				runToStepIncluding: ({ stepId }) => {
+					this.runToStepIncluding(stepId);
+				},
+			});
+			const info = { server };
+			this.servers.add(info);
+			onClosed.then(() => {
+				this.servers.delete(info);
+			});
+
+			for (const [id, c] of this.controllers) {
+				this.publishData(c.getStepStates(), id);
+			}
+		});
+	}
 
 	public registerController(controller: StepExecutionController): Disposable {
 		return new DisposableComponent(track => {
@@ -65,27 +89,6 @@ export class DebuggerConnection {
 		}
 	}
 
-	public async connectTo(serverPort: number) {
-		const stream = await WebSocketStream.connectTo({
-			host: "localhost",
-			port: serverPort,
-		});
-		const { server } = debuggerConnectionContract.getServerFromStream(
-			stream,
-			undefined,
-			{}
-		);
-		const info = { server, stream };
-		this.servers.add(info);
-		stream.onClosed.then(() => {
-			this.servers.delete(info);
-		});
-
-		for (const [id, c] of this.controllers) {
-			this.publishData(c.getStepStates(), id);
-		}
-	}
-
 	public runToStepIncluding(stepId: string, controllerId?: number) {
 		for (const [id, c] of this.controllers) {
 			if (controllerId !== undefined && id !== controllerId) {
@@ -95,5 +98,3 @@ export class DebuggerConnection {
 		}
 	}
 }
-
-(global as any)["@hediet/node-reload/DebuggerConnection"] = DebuggerConnection;

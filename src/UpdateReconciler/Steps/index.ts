@@ -1,2 +1,2 @@
-export * from "./DebuggerConnection";
+export { liveDebugContract } from "./LiveDebug";
 export * from "./steps";

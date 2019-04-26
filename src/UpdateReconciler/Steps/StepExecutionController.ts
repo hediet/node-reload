@@ -3,6 +3,9 @@ import { EventEmitter } from "@hediet/std/events";
 import { areEqualConsideringFunctionSource } from "./utils";
 import { Step, Steps } from ".";
 
+/**
+ * Internal state.
+ */
 interface StepData {
 	step: Step;
 	state:

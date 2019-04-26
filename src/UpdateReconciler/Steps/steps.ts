@@ -1,14 +1,25 @@
 import { getReloadCount, hotRequireExportedFn } from "..";
 import { StepExecutionController } from "./StepExecutionController";
-import { DebuggerConnection } from "./DebuggerConnection";
+import { LiveDebug } from "./LiveDebug";
 
 export interface Steps {
 	steps: Step<unknown, unknown>[];
 }
 
 export interface Step<A = unknown, B = unknown> {
+	/**
+	 * A global id used to identify the step.
+	 */
 	id: string;
+
+	/**
+	 * Values that are also considered when comparing new steps with olds.
+	 */
 	uses?: unknown;
+
+	/**
+	 * Runs this step.
+	 */
 	run: (args: A, context: StepContext) => Promise<B>;
 }
 
@@ -54,7 +65,7 @@ export function steps<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
 export function runExportedSteps(module: NodeModule, factory: () => Steps) {
 	if (getReloadCount(module) === 0) {
 		const controller = new StepExecutionController();
-		DebuggerConnection.instance.registerController(controller);
+		LiveDebug.instance.registerController(controller);
 
 		hotRequireExportedFn(module, factory, factory => {
 			controller.applyNewSteps(factory());
