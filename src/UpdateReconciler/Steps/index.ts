@@ -1,2 +1,2 @@
-export { liveDebugContract } from "./LiveDebug";
+export { StepsLiveDebugContract } from "./StepsLiveDebug";
 export * from "./steps";

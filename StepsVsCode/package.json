@@ -19,8 +19,8 @@
 	"dependencies": {
 		"@hediet/node-reload": "^0.3.1",
 		"@hediet/std": "^0.4.0",
-		"@hediet/typed-json-rpc": "^0.5.0",
-		"@hediet/typed-json-rpc-websocket-server": "^0.5.1",
+		"@hediet/typed-json-rpc": "^0.6.1",
+		"@hediet/typed-json-rpc-websocket-server": "^0.6.0",
 		"@types/node": "^11.13.0"
 	},
 	"devDependencies": {

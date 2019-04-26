@@ -1,6 +1,6 @@
 import { getReloadCount, hotRequireExportedFn } from "..";
 import { StepExecutionController } from "./StepExecutionController";
-import { LiveDebug } from "./LiveDebug";
+import { StepsLiveDebug } from "./StepsLiveDebug";
 
 export interface Steps {
 	steps: Step<unknown, unknown>[];
@@ -65,7 +65,7 @@ export function steps<T1, T2, T3, T4, T5, T6, T7, T8, T9>(
 export function runExportedSteps(module: NodeModule, factory: () => Steps) {
 	if (getReloadCount(module) === 0) {
 		const controller = new StepExecutionController();
-		LiveDebug.instance.registerController(controller);
+		StepsLiveDebug.instance.registerController(controller);
 
 		hotRequireExportedFn(module, factory, factory => {
 			controller.applyNewSteps(factory());

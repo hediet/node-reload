@@ -40,6 +40,14 @@
     "@hediet/std" "^0.4.0"
     io-ts "^1.8.3"
 
+"@hediet/typed-json-rpc@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@hediet/typed-json-rpc/-/typed-json-rpc-0.6.1.tgz#08006f35245abbb85d057b0b830746179b640101"
+  integrity sha512-Co6CqMXDtpTJBRESa1mtJ0uizr/mR1UtBh3e1SF3/Aab5YicGjrmYl2FIZ3QU6Ys5F9pCdTK+62FW4zVpqguXA==
+  dependencies:
+    "@hediet/std" "^0.4.0"
+    io-ts "^1.8.3"
+
 "@sinonjs/commons@^1", "@sinonjs/commons@^1.0.2", "@sinonjs/commons@^1.4.0":
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/@sinonjs/commons/-/commons-1.4.0.tgz#7b3ec2d96af481d7a0321252e7b1c94724ec5a78"

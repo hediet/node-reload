@@ -6,6 +6,7 @@ import {
 	steps,
 } from "../../dist";
 import { wait } from "@hediet/std/timer";
+import { liveLog } from "@hediet/live-debug";
 
 enableHotReload({ loggingEnabled: false });
 registerUpdateReconciler(module);
@@ -30,7 +31,8 @@ export function getSteps(): Steps {
 			id: "continue1",
 			run: async (args, { onRewind }) => {
 				await slowLog("continue 1");
-				onRewind(() => slowLog("undo 1"));
+				liveLog(args.data);
+				onRewind(() => slowLog("undo 1 "));
 				return { data2: 10, ...args };
 			},
 		},

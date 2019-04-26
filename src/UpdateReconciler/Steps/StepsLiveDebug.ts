@@ -15,7 +15,7 @@ const stepState = type({
 	]),
 });
 
-export const liveDebugContract = contract({
+export const StepsLiveDebugContract = contract({
 	server: {
 		updateState: notificationContract({
 			params: type({
@@ -25,6 +25,7 @@ export const liveDebugContract = contract({
 		}),
 	},
 	client: {
+		requestUpdate: notificationContract({}),
 		runToStepIncluding: notificationContract({
 			params: type({
 				stepId: string,
@@ -33,30 +34,33 @@ export const liveDebugContract = contract({
 	},
 });
 
-export class LiveDebug {
-	public static readonly instance = new LiveDebug();
+export class StepsLiveDebug {
+	public static readonly instance = new StepsLiveDebug();
+
 	private controllerId = 0;
 	private readonly controllers = new Map<number, StepExecutionController>();
 	private readonly servers = new Set<{
-		server: typeof liveDebugContract.TServerInterface;
+		server: typeof StepsLiveDebugContract.TServerInterface;
 	}>();
 
-	constructor() {
+	private constructor() {
 		registerLiveDebug((channel, onClosed) => {
-			const { server } = liveDebugContract.getServer(channel, {
+			const { server } = StepsLiveDebugContract.getServer(channel, {
 				runToStepIncluding: ({ stepId }) => {
 					this.runToStepIncluding(stepId);
 				},
+				requestUpdate: () => {
+					for (const [id, c] of this.controllers) {
+						this.publishData(c.getStepStates(), id);
+					}
+				},
 			});
 			const info = { server };
-			this.servers.add(info);
-			onClosed.then(() => {
+			channel.onListening.then(async () => {
+				this.servers.add(info);
+				await onClosed;
 				this.servers.delete(info);
 			});
-
-			for (const [id, c] of this.controllers) {
-				this.publishData(c.getStepStates(), id);
-			}
 		});
 	}
 
