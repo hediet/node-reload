@@ -1,6 +1,6 @@
 {
 	"name": "@hediet/node-reload",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"author": {
@@ -18,10 +18,9 @@
 	},
 	"license": "MIT",
 	"dependencies": {
+		"@hediet/live-debug": "0.4.1",
 		"@hediet/std": "^0.4.0",
-		"@hediet/typed-json-rpc": "^0.6.0",
-		"@hediet/typed-json-rpc-websocket": "^0.6.0",
-		"@hediet/live-debug": "0.4.0",
+		"@hediet/typed-json-rpc": "^0.6.1",
 		"@types/esprima": "^4.0.2",
 		"@types/estree": "^0.0.39",
 		"@types/node": "^11.13.5",
