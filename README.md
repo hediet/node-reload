@@ -164,13 +164,17 @@ export function getSteps(): Steps {
 }
 ```
 
-There is also the [vscode extension "Node Reload Steps Execution State Visualizer"](https://marketplace.visualstudio.com/items?itemName=hediet.node-reload-steps-vscode) that displays the current executation state when debugging such an application:
+There is also the [vscode extension "Live Debug"](https://marketplace.visualstudio.com/items?itemName=hediet.live-debug-vscode) that displays the current executation state when debugging such an application:
 
-![Execution state](./StepsVsCode/docs/demo-vscode-steps1.gif)
+![Execution state](./docs/demo-vscode-steps1.gif)
 
 You can even use vscode to run a specific step:
 
-![Move to step](./StepsVsCode/docs/demo-vscode-steps2.gif)
+![Move to step](./docs/demo-vscode-steps2.gif)
+
+It integrates very well with puppeteer:
+
+![Puppeteer Demo](./docs/demo-puppeteer.gif)
 
 ## Similar libs
 
@@ -179,3 +183,4 @@ You can even use vscode to run a specific step:
 ## Changelog
 
 -   0.0.2 - Initial release.
+-   0.4.2 - Implements Live Debug

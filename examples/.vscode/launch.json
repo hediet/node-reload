@@ -9,6 +9,12 @@
 			"type": "node",
 			"request": "launch",
 			"program": "${workspaceFolder}/dist/simple-steps.entry"
+		},
+		{
+			"name": "Run Moodle",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/dist/moodle.entry"
 		}
 	]
 }

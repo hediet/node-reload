@@ -6,6 +6,7 @@ import {
 	registerUpdateReconciler,
 } from "../../dist";
 import puppeteer = require("puppeteer");
+import { liveLog } from "@hediet/live-debug";
 
 enableHotReload();
 registerUpdateReconciler(module);
@@ -18,7 +19,6 @@ export function getSteps(): Steps {
 			run: async (args, { onRewind }) => {
 				const browser = await puppeteer.launch({
 					slowMo: 10,
-					devtools: true,
 					headless: false,
 					args: ["--lang=en-US,en"],
 				});
@@ -36,7 +36,9 @@ export function getSteps(): Steps {
 			id: "Login",
 			run: async args => {
 				const page = args.page;
+				await page.deleteCookie(...(await page.cookies()));
 				await page.goto("https://demo.moodle.net/login/index.php");
+				await page.waitForSelector("#username");
 				await page.type("#username", "admin");
 				await page.type("#password", "sandbox");
 				await page.$eval("#login", form =>
