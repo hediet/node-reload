@@ -1,6 +1,6 @@
 {
 	"name": "@hediet/node-reload",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"author": {
