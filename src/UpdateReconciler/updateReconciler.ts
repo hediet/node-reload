@@ -96,6 +96,12 @@ export function disposeOnReload(
 }
 
 export interface HotRequireExportedFnOptions {
+	/**
+	 * Specify how changes are detected.
+	 * `"yes"`: Consider every reload as change.
+	 * `"useSource"`: Use `Function.toString()` to compare the functions source.
+	 * `Function`: Use a custom test whether a function has changed.
+	 */
 	hasFnChanged?:
 		| "yes"
 		| "useSource"
@@ -106,11 +112,22 @@ export type HotRequireExportedFnUpdater<TItem extends Function> = (
 	current: TItem,
 	old: TItem | undefined
 ) => DisposableLike | void;
+
+/**
+ * Uses an item that is exported in the given module.
+ * It is important that `fn.name` reflects the name of the export.
+ * `update` is called initially and whenever the given module reloads.
+ */
 export function hotRequireExportedFn<TItem extends Function>(
 	module: NodeModule,
 	fn: TItem,
 	update: HotRequireExportedFnUpdater<TItem>
 ): Disposable;
+/**
+ * Uses an item that is exported in the given module.
+ * It is important that `fn.name` reflects the name of the export.
+ * `update` is called initially and whenever the given module reloads.
+ */
 export function hotRequireExportedFn<TItem extends Function>(
 	module: NodeModule,
 	fn: TItem,
