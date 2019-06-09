@@ -1,4 +1,4 @@
-import { DisposableComponent } from "@hediet/std/disposable";
+import { Disposable } from "@hediet/std/disposable";
 import { EventEmitter } from "@hediet/std/events";
 import { areEqualConsideringFunctionSource } from "./utils";
 import { Step, Steps } from ".";
@@ -26,7 +26,7 @@ export interface StepState {
 		| { kind: "undoing" };
 }
 
-export class StepExecutionController extends DisposableComponent {
+export class StepExecutionController {
 	private lastRanStepIdx: number = -1;
 	private currentSteps = new Array<StepData>();
 	private stepStatesChangedEmitter = new EventEmitter<

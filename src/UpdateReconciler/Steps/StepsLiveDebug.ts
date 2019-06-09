@@ -1,7 +1,7 @@
 import { array, type, string, literal, union, Integer } from "io-ts";
 import { contract, notificationContract } from "@hediet/typed-json-rpc";
 import { StepExecutionController, StepState } from "./StepExecutionController";
-import { Disposable, DisposableComponent } from "@hediet/std/disposable";
+import { Disposable } from "@hediet/std/disposable";
 import { registerLiveDebug } from "@hediet/live-debug";
 
 const stepState = type({
@@ -65,7 +65,7 @@ export class StepsLiveDebug {
 	}
 
 	public registerController(controller: StepExecutionController): Disposable {
-		return new DisposableComponent(track => {
+		return Disposable.fn(track => {
 			const controllerId = this.controllerId++;
 			this.controllers.set(controllerId, controller);
 			track({

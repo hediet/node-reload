@@ -19,17 +19,6 @@
 			"args": ["--extensionDevelopmentPath=${workspaceFolder}/examples"],
 			"outFiles": ["${workspaceFolder}/examples/dist/**/*.js"],
 			"preLaunchTask": "npm: dev"
-		},
-		{
-			"name": "Run Steps Extension",
-			"type": "extensionHost",
-			"request": "launch",
-			"runtimeExecutable": "${execPath}",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}/StepsVsCode"
-			],
-			"outFiles": ["${workspaceFolder}/StepsVsCode/dist/**/*.js"],
-			"preLaunchTask": "npm: dev"
 		}
 	]
 }
