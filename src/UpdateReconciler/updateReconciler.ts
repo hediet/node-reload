@@ -1,6 +1,7 @@
 import { Disposable, DisposableLike, dispose } from "@hediet/std/disposable";
 import { AttachedProperty } from "@hediet/std/extensibility";
 import { setModuleReconciler } from "../Reconciler";
+import { HotReloadService } from "../HotReloadService";
 
 interface ModuleInfo {
 	updaters: Set<Updater>;
@@ -136,7 +137,7 @@ export function hotRequireExportedFn<TItem extends Function>(
 ): Disposable;
 export function hotRequireExportedFn(
 	module: NodeModule,
-	fn: Function,
+	exportedFn: Function,
 	updateOrOptions:
 		| HotRequireExportedFnOptions
 		| HotRequireExportedFnUpdater<Function>,
@@ -156,6 +157,17 @@ export function hotRequireExportedFn(
 		throw new Error(`'registerUpdateReconciler' must be called first.`);
 	}
 
+	/*
+	// Don't throw as exports might be set later on initial load!
+	if (module.exports[exportedFn.name] !== exportedFn) {
+		throw new Error(
+			`Given function is not exported at "module.exports.${
+				exportedFn.name
+			}"!`
+		);
+	}
+	*/
+
 	let hasFnChanged: (newFn: Function, lastFn: Function) => boolean = () =>
 		true;
 	if (options) {
@@ -167,9 +179,9 @@ export function hotRequireExportedFn(
 		}
 	}
 	const updater: Updater = {
-		exportName: fn.name,
-		lastDisposable: update(fn, undefined) as any,
-		lastFn: fn,
+		exportName: exportedFn.name,
+		lastDisposable: update(exportedFn, undefined) as any,
+		lastFn: exportedFn,
 		hasFnChanged,
 		update,
 	};
@@ -180,4 +192,30 @@ export function hotRequireExportedFn(
 		info.updaters.delete(updater);
 		dispose(updater.lastDisposable);
 	});
+}
+
+export function hotCallExportedFunction<TArgs extends any[], TResult>(
+	module: NodeModule,
+	exportedFn: (...args: TArgs) => TResult,
+	...args: TArgs
+): TResult {
+	let result: any = undefined;
+	const d = hotRequireExportedFn(module, exportedFn, exportedFn => {
+		result = exportedFn(...args);
+	});
+	while (true) {
+		if (HotReloadService.instance) {
+			if (
+				HotReloadService.instance.handleFileMightHaveChanged(
+					module.filename
+				)
+			) {
+				continue;
+			}
+		}
+		break;
+	}
+
+	d.dispose();
+	return result;
 }

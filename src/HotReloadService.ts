@@ -7,6 +7,7 @@ import {
 	ReconcileContext,
 	nodeModuleSourceProperty,
 	getModuleReconciler,
+	ModuleUpdateReason,
 } from "./Reconciler";
 
 export class HotReloadService {
@@ -34,7 +35,7 @@ export class HotReloadService {
 		private readonly shouldTrackModule: (filename: string) => boolean
 	) {
 		this.watcher.on("change", (file: string) => {
-			this.handleFileChanged(file);
+			this.handleFileMightHaveChanged(file);
 		});
 
 		const service = this;
@@ -140,10 +141,10 @@ export class HotReloadService {
 		}
 	}
 
-	private handleFileChanged(filename: string) {
+	public handleFileMightHaveChanged(filename: string): boolean {
 		const changedModule = this.trackedModules.get(filename);
 		if (!changedModule) {
-			return;
+			return false;
 		}
 
 		this.log(
@@ -152,6 +153,16 @@ export class HotReloadService {
 				changedModule.module.filename
 			)}"`
 		);
+
+		const newSource = readFileSync(changedModule.module.filename, {
+			encoding: "utf8",
+		});
+		const oldSource = nodeModuleSourceProperty.get(changedModule.module)!;
+		if (newSource === oldSource) {
+			return false;
+		}
+
+		nodeModuleSourceProperty.set(changedModule.module, newSource);
 
 		const mightNeedReconcilation = this.getModulesThatMightNeedReconcilation(
 			changedModule
@@ -181,6 +192,7 @@ export class HotReloadService {
 			);
 			const reason = this.getReason(
 				curMod,
+				{ newSource, oldSource },
 				changedModule,
 				notReconciledDeps,
 				processedDeps
@@ -192,10 +204,13 @@ export class HotReloadService {
 				queue.push(dependant);
 			}
 		}
+
+		return true;
 	}
 
 	private getReason(
 		curMod: ReconcilableModule,
+		curModChangeReason: ModuleUpdateReason | undefined,
 		changedModule: ReconcilableNodeModule,
 		notReconciledDeps: ReconcilableModule[],
 		processedDeps: ReadonlyMap<
@@ -207,13 +222,7 @@ export class HotReloadService {
 			dependencyUpdates: new Map(),
 		};
 		if (curMod === changedModule) {
-			const newSource = readFileSync(changedModule.module.filename, {
-				encoding: "utf8",
-			});
-			reason.moduleUpdates = {
-				newSource,
-				oldSource: nodeModuleSourceProperty.get(changedModule.module)!,
-			};
+			reason.moduleUpdates = curModChangeReason;
 		}
 		for (const d of notReconciledDeps) {
 			reason.dependencyUpdates.set(d.id, processedDeps.get(d)!.reason);
