@@ -3,12 +3,11 @@ import {
 	registerUpdateReconciler,
 	getReloadCount,
 	hotCallExportedFunction,
+	hotMethod,
 } from "../../dist";
 
 enableHotReload();
 registerUpdateReconciler(module);
-
-require("C:\\Users\\Henning\\AppData\\Local\\Yarn\\Data\\global\\node_modules\\easy-attach\\")();
 
 if (getReloadCount(module) === 0) {
 	const result = hotCallExportedFunction(module, sqr, 5);
@@ -19,3 +18,17 @@ export function sqr(i: number): number {
 	const result = i * i;
 	return result;
 }
+
+class Test {
+	constructor() {
+		const result = this.sqr(10);
+	}
+
+	@hotMethod(module)
+	public sqr(i: number): number {
+		const result = i * 2;
+		return result;
+	}
+}
+
+new Test().sqr(10);
