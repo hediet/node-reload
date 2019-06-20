@@ -1,4 +1,3 @@
-import { Disposable } from "@hediet/std/disposable";
 import { EventEmitter } from "@hediet/std/events";
 import { areEqualConsideringFunctionSource } from "./utils";
 import { Step, Steps } from ".";

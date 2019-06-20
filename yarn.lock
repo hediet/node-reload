@@ -2,26 +2,16 @@
 # yarn lockfile v1
 
 
-"@hediet/live-debug@^0.5.1":
-  version "0.5.1"
-  resolved "https://registry.yarnpkg.com/@hediet/live-debug/-/live-debug-0.5.1.tgz#3edbaa836716d0934e7977b5b050f246bd83adab"
-  integrity sha512-hzrLdBYletetkjYBa7ZO4zwOrqZhZcoiA0WzTse223IdA8RdV5Nk68gTeOaPbb/74iXDB7JJMJsZFLGqeup9Qg==
+"@hediet/live-debug@^0.5.2":
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/@hediet/live-debug/-/live-debug-0.5.2.tgz#f2ee0034f014836bfd68e26c35a168ab42b15486"
+  integrity sha512-HBqVbyFez1oQlIPO9dzkFi7/9Gvt6ZpssgURzYaVFREl9Oq03nPd6V7Ay4bW03xFHPo3YT2Yff9mFmGQUX7JEg==
   dependencies:
     "@hediet/std" "^0.6.0"
     "@hediet/typed-json-rpc" "^0.7.6"
     "@hediet/typed-json-rpc-websocket" "^0.7.7"
     stacktracey "^1.2.112"
     ws "^7.0.0"
-
-"@hediet/std@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@hediet/std/-/std-0.4.0.tgz#95dfd6e9d62f8bf9d91f3925d37b7b359b2af047"
-  integrity sha512-2kw4vSOprLchTjhcg8qQo6fdbBxJicSUrzZXgL0KzgMv18hjVmpm57NPLCPfI6115kAaMIWvMnlHFLYbx7poQQ==
-  dependencies:
-    "@types/chai" "^4.1.7"
-    "@types/sinon" "^7.0.10"
-    chai "^4.2.0"
-    sinon "^7.2.7"
 
 "@hediet/std@^0.6.0":
   version "0.6.0"
@@ -43,18 +33,10 @@
     "@types/ws" "^6.0.1"
     isomorphic-ws "^4.0.1"
 
-"@hediet/typed-json-rpc@^0.7.5":
-  version "0.7.5"
-  resolved "https://registry.yarnpkg.com/@hediet/typed-json-rpc/-/typed-json-rpc-0.7.5.tgz#3809861bd52f2a633ca2fd148b4386bacfd7d13d"
-  integrity sha512-UFxD8OIkQUEZH1xDsxF1HF9DcXqH8c75LPX6GUPijUxe8RFY/f1GF9XuPnr8um3G3ZMZ2G5JQy4V4Ots7uzl7Q==
-  dependencies:
-    "@hediet/std" "^0.4.0"
-    io-ts "^1.8.6"
-
-"@hediet/typed-json-rpc@^0.7.6":
-  version "0.7.6"
-  resolved "https://registry.yarnpkg.com/@hediet/typed-json-rpc/-/typed-json-rpc-0.7.6.tgz#2c00e82816eae4dc2a1c9f4b87bafec3b11eb76a"
-  integrity sha512-9skYQLIodwRhAokToa0YjIhRIg3cxTr+udlDpsP4AfT2NvG70w3NSwRmEilskN77OQiN7M4OuWzJ3ThGzkKpXA==
+"@hediet/typed-json-rpc@^0.7.5", "@hediet/typed-json-rpc@^0.7.6":
+  version "0.7.7"
+  resolved "https://registry.yarnpkg.com/@hediet/typed-json-rpc/-/typed-json-rpc-0.7.7.tgz#bd7e586ad5c0480f7bd6bc40d6ad202e0a80b54d"
+  integrity sha512-lyjbVqt+mFrRS0+2cOVDithtfG9gfRV5CJMVDwV+F2gfCUjTe1aZu4xObpDDLfxfoZOGgtPNNg6jCNhvXSxQHg==
   dependencies:
     "@hediet/std" "^0.6.0"
     io-ts "^1.8.6"
@@ -324,9 +306,9 @@ lolex@^4.0.1, lolex@^4.1.0:
   integrity sha512-BYxIEXiVq5lGIXeVHnsFzqa1TxN5acnKnPCdlZSpzm8viNEOhiigupA4vTQ9HEFQ6nLTQ9wQOgBknJgzUYQ9Aw==
 
 mobx@^5.10.0:
-  version "5.10.0"
-  resolved "https://registry.yarnpkg.com/mobx/-/mobx-5.10.0.tgz#6107a73a27aee72abdc977ab75f9ec0d0983aa61"
-  integrity sha512-pYtQtxr80ugbj7xO4pmZRm1n0ZqG2Wo+ykr/03ZRG18Ib8dqUgpzso6aEJyu3fM7JurFmC1dOqmjeCHO8N+3Yg==
+  version "5.10.1"
+  resolved "https://registry.yarnpkg.com/mobx/-/mobx-5.10.1.tgz#eb0e2ff76fe376d0a42c941533260deeae5956d8"
+  integrity sha512-L+akEGxdkKYssejgW9ayRPx5cZYJfxvTmdBUeR3S9oeumScV7Jj57yPeh9WMEk6NWeG8Wx3H0cWhqs0pftbtmg==
 
 nise@^1.4.10:
   version "1.5.0"

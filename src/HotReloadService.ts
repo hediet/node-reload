@@ -54,6 +54,10 @@ export class HotReloadService {
 		};
 	}
 
+	dispose() {
+		this.watcher.close();
+	}
+
 	public require(
 		caller: NodeModule,
 		request: string,

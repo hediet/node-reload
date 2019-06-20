@@ -9,4 +9,4 @@ export {
 	getModuleReconciler,
 	setModuleReconciler,
 } from "./Reconciler";
-export { hotMethod } from "./hotMethod";
+export * from "./hotMethod";

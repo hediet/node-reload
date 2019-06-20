@@ -43,3 +43,10 @@ export function enableHotReload(options?: HotReloadOptions) {
 		);
 	}
 }
+
+export function disableHotReload() {
+	if (HotReloadService.instance) {
+		HotReloadService.instance.dispose();
+		HotReloadService.instance = undefined;
+	}
+}
