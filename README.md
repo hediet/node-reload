@@ -81,6 +81,61 @@ if (getReloadCount(module) === 0) {
 }
 ```
 
+### Hot Reloading Methods
+
+You can use `@hotMethod` to mark a method of a class as hot,
+and `@hotClass` to mark all class methods as hot.
+Hot methods check before entering and after leaving whether their source has changed.
+If the source of an hot method changes, the very first caller whose source has changed is restarted.
+
+You can call `restartOnReload` to check whether the source of any active hot method has changed.
+If it changed, `restartOnReload` will throw so it can also restart loops.
+
+Hot methods are especially useful when working with typescripts compiler API.
+
+![Demo](./docs/demo-hot-call.gif)
+
+```ts
+import {
+	registerUpdateReconciler,
+	hotRequireExportedFn,
+	getReloadCount,
+	enableHotReload,
+} from "@hediet/node-reload";
+
+enableHotReload();
+
+// a reconciler must reload the module
+registerUpdateReconciler(module);
+
+// Marks every method as hot.
+@hotClass(module)
+class Test {
+	public main(): void {
+		console.log("main");
+		const r = this.max(10, 14);
+		console.log("max is: ", r);
+	}
+
+	// internally, `max` is wrapped in `max@hot-wrapper`.
+	private max(m: number, n: number): number {
+		console.log(`Compute max(${m}, ${n})`);
+		let result = m > n ? n : m;
+		// Add a breakpoint here and fix the bug
+		// while `tsc --watch` and your program are running.
+		// Then `max` is executed again
+		// and the new result value is return to the caller.
+		console.log(`Result is: `, result);
+		return result;
+	}
+}
+
+if (getReloadCount(module) === 0) {
+	new Test().main();
+	disableHotReload();
+}
+```
+
 ### Vs Code Extension Reloading
 
 With `hotRequireExportedFn` you can easily make your VS Code Extension really hot. Note how the status bar updates:
