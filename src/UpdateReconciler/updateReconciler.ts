@@ -37,6 +37,7 @@ export function registerUpdateReconciler(module: NodeModule) {
 		});
 	}
 	setModuleReconciler(module, context => {
+		HotReloadService.instance!.log("Reconciling with updateReconciler.");
 		const info = moduleInfoProperty.get(module);
 		if (!info) {
 			throw new Error("Impossible");
@@ -62,6 +63,10 @@ export function registerUpdateReconciler(module: NodeModule) {
 			if (!updater.hasFnChanged(newFn, updater.lastFn)) {
 				continue;
 			}
+			HotReloadService.instance!.log(
+				`Exported item "${updater.exportName}" is marked as changed`
+			);
+
 			dispose(updater.lastDisposable);
 			updater.lastDisposable = updater.update(newFn, updater.lastFn);
 			updater.lastFn = newFn;

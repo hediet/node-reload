@@ -1,5 +1,153 @@
 import { HotReloadService } from "./HotReloadService";
 
+interface HotMethodOptions {
+	//restartOnReload?: boolean;
+}
+const defaultHotMethodOptions: HotMethodOptions = {
+	//restartOnReload: true
+};
+
+/**
+ * Marks a class as hot reloadable.
+ * This marks each method with `@hotMethod` and tracks new methods.
+ */
+export function hotClass(
+	module: NodeModule,
+	options = defaultHotMethodOptions
+) {
+	return function(target: any) {
+		if (!HotReloadService.instance) {
+			return;
+		}
+
+		FunctionStore.instance.addPrototype(
+			module,
+			target.name,
+			target.prototype
+		);
+
+		for (const key of Object.getOwnPropertyNames(target.prototype)) {
+			const d = Object.getOwnPropertyDescriptor(target.prototype, key);
+			if (d && !d.value.isHot) {
+				hotMethod(module, options)(target.prototype, key, d);
+				Object.defineProperty(target.prototype, key, d);
+			}
+		}
+	};
+}
+
+/**
+ * Marks a method as hot reloadable.
+ * If the method changes while it is executed, it will be restarted.
+ * However, if an hot caller changes, it throws a `ModuleChangedError` exception.
+ * This triggers the topmost changed caller to restart.
+ * The decorator does nothing, if hot reloading has not been enabled.
+ * Warning: This decorator might have an performance impact when hot reloading is enabled.
+ */
+export function hotMethod(
+	module: NodeModule,
+	options = defaultHotMethodOptions
+) {
+	return function(
+		target: any,
+		propertyKey: string,
+		descriptor: PropertyDescriptor
+	) {
+		if (!HotReloadService.instance) {
+			return;
+		}
+
+		const func = descriptor.value;
+		const className: string = target.constructor.name;
+
+		FunctionStore.instance.setFunc(module, className, propertyKey, func);
+		descriptor.value = getNewFunc(module, className, propertyKey);
+	};
+}
+
+export class ModuleChangedError {
+	constructor(public readonly frameToRestart: HotStackFrame) {}
+}
+
+/**
+ * Checks whether any hot method has been changed.
+ * If so, throws a `ModuleChangedError` exception that triggers a restart.
+ */
+export function restartOnReload() {
+	if (!HotStack.instance.current || !HotReloadService.instance) {
+		return;
+	}
+
+	if (
+		HotReloadService.instance!.handleFileMightHaveChanged(
+			HotStack.instance.current.module.filename
+		)
+	) {
+		const b = HotStack.instance.findFrameToRestart();
+		if (b) {
+			throw new ModuleChangedError(b.frameToRestart);
+		}
+	}
+}
+
+function getNewFunc(module: NodeModule, className: string, methodName: string) {
+	const fnName =
+		methodName === "constructor"
+			? `${className}`
+			: `${methodName}@hot-wrapper`;
+	const obj = {
+		[fnName](this: any, ...args: any[]) {
+			let result: any;
+
+			while (true) {
+				const mostRecentFunc = FunctionStore.instance.getFunc(
+					module,
+					className,
+					methodName
+				)!;
+				const entry: HotStackFrame = {
+					module,
+					className,
+					methodName,
+					fn: mostRecentFunc,
+				};
+				HotStack.instance.push(entry);
+				try {
+					restartOnReload();
+					result = mostRecentFunc.apply(this, args);
+					restartOnReload();
+					break;
+				} catch (e) {
+					if (e instanceof ModuleChangedError) {
+						if (e.frameToRestart === entry) {
+							HotReloadService.instance!.log(
+								`Restarting ${e.frameToRestart.className}::${
+									e.frameToRestart.methodName
+								}(${args}).`,
+								args
+							);
+							continue;
+						} else {
+							HotReloadService.instance!.log(
+								`Interrupting ${entry.className}::${
+									entry.methodName
+								}(${args}) because a caller changed.`
+							);
+						}
+					}
+					throw e;
+				} finally {
+					HotStack.instance.pop();
+				}
+			}
+			return result;
+		},
+	};
+	(obj[fnName] as any).isHot = true;
+
+	return obj[fnName];
+}
+
 class FunctionStore {
 	public static instance = new FunctionStore();
 
@@ -95,119 +243,4 @@ class HotStack {
 		}
 		return undefined;
 	}
-}
-
-export class ModuleChangedError {
-	constructor(public readonly frameToRestart: HotStackFrame) {}
-}
-
-export function restartOnReload() {
-	if (!HotStack.instance.current || !HotReloadService.instance) {
-		return;
-	}
-
-	if (
-		HotReloadService.instance!.handleFileMightHaveChanged(
-			HotStack.instance.current.module.filename
-		)
-	) {
-		const b = HotStack.instance.findFrameToRestart();
-		if (b) {
-			throw new ModuleChangedError(b.frameToRestart);
-		}
-	}
-}
-
-interface HotMethodOptions {
-	//restartOnReload?: boolean;
-}
-const defaultHotMethodOptions: HotMethodOptions = {
-	//restartOnReload: true
-};
-
-export function hotClass(
-	module: NodeModule,
-	options = defaultHotMethodOptions
-) {
-	return function(target: any) {
-		if (!HotReloadService.instance) {
-			return;
-		}
-
-		FunctionStore.instance.addPrototype(
-			module,
-			target.name,
-			target.prototype
-		);
-
-		for (const key of Object.getOwnPropertyNames(target.prototype)) {
-			const d = Object.getOwnPropertyDescriptor(target.prototype, key);
-			if (d && !d.value.isHot) {
-				hotMethod(module, options)(target.prototype, key, d);
-				Object.defineProperty(target.prototype, key, d);
-			}
-		}
-	};
-}
-
-export function hotMethod(
-	module: NodeModule,
-	options = defaultHotMethodOptions
-) {
-	return function(
-		target: any,
-		propertyKey: string,
-		descriptor: PropertyDescriptor
-	) {
-		if (!HotReloadService.instance) {
-			return;
-		}
-
-		const func = descriptor.value;
-		const className: string = target.constructor.name;
-
-		FunctionStore.instance.setFunc(module, className, propertyKey, func);
-		descriptor.value = getNewFunc(module, className, propertyKey);
-	};
-}
-
-function getNewFunc(module: NodeModule, className: string, methodName: string) {
-	const fnName = `${methodName}@hot-wrapper`;
-	const obj = {
-		[fnName](this: any, ...args: any[]) {
-			let result: any;
-
-			while (true) {
-				const mostRecentFunc = FunctionStore.instance.getFunc(
-					module,
-					className,
-					methodName
-				)!;
-				const entry: HotStackFrame = {
-					module,
-					className,
-					methodName,
-					fn: mostRecentFunc,
-				};
-				HotStack.instance.push(entry);
-				try {
-					result = mostRecentFunc.apply(this, args);
-					restartOnReload();
-					break;
-				} catch (e) {
-					if (e instanceof ModuleChangedError) {
-						if (e.frameToRestart === entry) {
-							continue;
-						}
-					}
-					throw e;
-				} finally {
-					HotStack.instance.pop();
-				}
-			}
-			return result;
-		},
-	};
-	(obj[fnName] as any).isHot = true;
-	return obj[fnName];
 }

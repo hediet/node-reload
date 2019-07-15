@@ -9,6 +9,8 @@ import {
 	getModuleReconciler,
 	ModuleUpdateReason,
 } from "./Reconciler";
+import chalk from "chalk";
+import { Disposable, disposeOnReturn } from "@hediet/std/disposable";
 
 export class HotReloadService {
 	public static instance: HotReloadService | undefined;
@@ -19,10 +21,23 @@ export class HotReloadService {
 		ReconcilableNodeModule
 	>();
 
-	public log(...message: any[]) {
+	private level: number = 0;
+
+	public log(message: string, ...args: any[]) {
 		if (this.loggingEnabled) {
-			console.log(...message);
+			let padding = "";
+			for (let i = 0; i < this.level; i++) {
+				padding += "| ";
+			}
+			console.log(chalk.gray(padding + message), ...args);
 		}
+	}
+
+	public indentLog(): Disposable {
+		this.level++;
+		return Disposable.create(() => {
+			this.level--;
+		});
 	}
 
 	public readonly originalModule = {
@@ -151,13 +166,6 @@ export class HotReloadService {
 			return false;
 		}
 
-		this.log(
-			`File changed: "${relative(
-				process.cwd(),
-				changedModule.module.filename
-			)}"`
-		);
-
 		const newSource = readFileSync(changedModule.module.filename, {
 			encoding: "utf8",
 		});
@@ -165,6 +173,13 @@ export class HotReloadService {
 		if (newSource === oldSource) {
 			return false;
 		}
+
+		this.log(
+			`File changed: "${relative(
+				process.cwd(),
+				changedModule.module.filename
+			)}"`
+		);
 
 		nodeModuleSourceProperty.set(changedModule.module, newSource);
 
@@ -240,15 +255,21 @@ export class HotReloadService {
 	): boolean {
 		if (reason.moduleUpdates || reason.dependencyUpdates.size > 0) {
 			// something changed for this module
-			this.log(`Reconciling ${curMod.id}:`);
-			if (curMod.tryToReconcile(reason)) {
-				this.log(`succeeded.`);
-				return true;
-			} else {
-				if (curMod.dependants.size === 0) {
-					this.log(`failed.`);
+			this.log(`Reconciling "${curMod.id}"`);
+
+			const d = this.indentLog();
+			try {
+				if (curMod.tryToReconcile(reason)) {
+					this.log(`succeeded.`);
+					return true;
+				} else {
+					if (curMod.dependants.size === 0) {
+						this.log(`failed.`);
+					}
+					return false;
 				}
-				return false;
+			} finally {
+				d.dispose();
 			}
 		}
 		return false;
@@ -303,7 +324,7 @@ class ReconcilableNodeModule extends ReconcilableModule {
 
 		const clearOldCache = () => {
 			if (!reloaded) {
-				this.service.log(`... clearing cache`);
+				this.service.log(`clearing cache`);
 				delete require.cache[this.module.filename];
 			}
 			reloaded = true;
@@ -311,13 +332,16 @@ class ReconcilableNodeModule extends ReconcilableModule {
 
 		const reloadModule: ReconcileContext["reloadModule"] = prepareNewModule => {
 			clearOldCache();
-			// don't track this dependency to ourself
-			this.service.log("... requiring new module");
+			this.service.log("requiring new module");
 			this.prepareNewModule = prepareNewModule;
-			const newExports = this.service.originalModule.require.call(
-				this.module,
-				this.module.filename
-			);
+			const newExports = disposeOnReturn(track => {
+				track(this.service.indentLog());
+				// don't track this dependency to ourself
+				return this.service.originalModule.require.call(
+					this.module,
+					this.module.filename
+				);
+			});
 			this.prepareNewModule = undefined;
 			const requiredModule = require.cache[
 				this.module.filename
