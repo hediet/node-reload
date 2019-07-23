@@ -148,7 +148,7 @@ import {
 	hotRequireExportedFn,
 	registerUpdateReconciler,
 } from "@hediet/node-reload";
-import { DisposableComponent } from "@hediet/std/disposable";
+import { Disposable } from "@hediet/std/disposable";
 import * as vscode from "vscode";
 
 if (isDevMode()) {
@@ -156,12 +156,14 @@ if (isDevMode()) {
 }
 registerUpdateReconciler(module);
 
-export class Extension extends DisposableComponent {
+export class Extension {
+	public readonly dispose = Disposable.fn();
+
 	constructor() {
 		super();
 
 		// Disposables are disposed automatically on reload.
-		const item = this.trackDisposable(vscode.window.createStatusBarItem());
+		const item = this.dispose.track(vscode.window.createStatusBarItem());
 		item.text = "Hallo Welt";
 		item.show();
 	}
