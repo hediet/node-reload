@@ -50,7 +50,10 @@ export class HotReloadService {
 		private readonly shouldTrackModule: (filename: string) => boolean
 	) {
 		this.watcher.on("change", (file: string) => {
-			this.handleFileMightHaveChanged(file);
+			// Deferring guards against safe write or file truncation before writing.
+			setTimeout(() => {
+				this.handleFileMightHaveChanged(file);
+			}, 200);
 		});
 
 		const service = this;
