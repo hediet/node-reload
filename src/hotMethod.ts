@@ -28,7 +28,7 @@ export function hotClass(
 
 		for (const key of Object.getOwnPropertyNames(target.prototype)) {
 			const d = Object.getOwnPropertyDescriptor(target.prototype, key);
-			if (d && !d.value.isHot) {
+			if (d && typeof d.value === "function" && !d.value.isHot) {
 				hotMethod(module, options)(target.prototype, key, d);
 				Object.defineProperty(target.prototype, key, d);
 			}
