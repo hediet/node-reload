@@ -100,40 +100,19 @@ function getNewFunc(module: NodeModule, className: string, methodName: string) {
 			let result: any;
 
 			while (true) {
-				const mostRecentFunc = FunctionStore.instance.getFunc(
+				const entry = getMostRecentFuncAndPushOnStack(
 					module,
 					className,
 					methodName
-				)!;
-				const entry: HotStackFrame = {
-					module,
-					className,
-					methodName,
-					fn: mostRecentFunc,
-				};
-				HotStack.instance.push(entry);
+				);
 				try {
 					restartOnReload();
-					result = mostRecentFunc.apply(this, args);
+					result = entry.fn.apply(this, args);
 					restartOnReload();
 					break;
 				} catch (e) {
-					if (e instanceof ModuleChangedError) {
-						if (e.frameToRestart === entry) {
-							HotReloadService.instance!.log(
-								`Restarting ${e.frameToRestart.className}::${
-									e.frameToRestart.methodName
-								}(${args}).`,
-								args
-							);
-							continue;
-						} else {
-							HotReloadService.instance!.log(
-								`Interrupting ${entry.className}::${
-									entry.methodName
-								}(${args}) because a caller changed.`
-							);
-						}
+					if (handleError(e, args, entry).continue) {
+						continue;
 					}
 					throw e;
 				} finally {
@@ -146,6 +125,52 @@ function getNewFunc(module: NodeModule, className: string, methodName: string) {
 	(obj[fnName] as any).isHot = true;
 
 	return obj[fnName];
+}
+
+function handleError(
+	e: Error,
+	args: any[],
+	entry: HotStackFrame
+): { continue: boolean } {
+	if (e instanceof ModuleChangedError) {
+		if (e.frameToRestart === entry) {
+			HotReloadService.instance!.log(
+				`Restarting ${e.frameToRestart.className}::${
+					e.frameToRestart.methodName
+				}(${args}).`,
+				args
+			);
+			return { continue: true };
+		} else {
+			HotReloadService.instance!.log(
+				`Interrupting ${entry.className}::${
+					entry.methodName
+				}(${args}) because a caller changed.`
+			);
+		}
+	}
+	return { continue: false };
+}
+
+function getMostRecentFuncAndPushOnStack(
+	module: NodeModule,
+	className: string,
+	methodName: string
+): HotStackFrame {
+	const mostRecentFunc = FunctionStore.instance.getFunc(
+		module,
+		className,
+		methodName
+	)!;
+	const entry: HotStackFrame = {
+		module,
+		className,
+		methodName,
+		fn: mostRecentFunc,
+	};
+	HotStack.instance.push(entry);
+
+	return entry;
 }
 
 class FunctionStore {
