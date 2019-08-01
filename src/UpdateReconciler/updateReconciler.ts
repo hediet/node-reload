@@ -67,8 +67,22 @@ export function registerUpdateReconciler(module: NodeModule) {
 				`Exported item "${updater.exportName}" is marked as changed`
 			);
 
-			dispose(updater.lastDisposable);
-			updater.lastDisposable = updater.update(newFn, updater.lastFn);
+			try {
+				dispose(updater.lastDisposable);
+			} catch (e) {
+				HotReloadService.instance!.log(
+					`Could not dispose stale disposables: `,
+					e
+				);
+				throw e;
+			}
+
+			try {
+				updater.lastDisposable = updater.update(newFn, updater.lastFn);
+			} catch (e) {
+				HotReloadService.instance!.log(`Could not apply update: `, e);
+				throw e;
+			}
 			updater.lastFn = newFn;
 		}
 

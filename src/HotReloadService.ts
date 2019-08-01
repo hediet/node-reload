@@ -83,8 +83,18 @@ export class HotReloadService {
 	): unknown {
 		const moduleExports = this.originalModule.require.call(caller, request);
 
+		let modulePath: string;
 		try {
-			const modulePath = Module._resolveFilename(request, caller);
+			modulePath = Module._resolveFilename(request, caller);
+		} catch (e) {
+			this.log(
+				`Error while resolving module "${request}" from "${
+					caller.filename
+				}"`
+			);
+			return moduleExports;
+		}
+		try {
 			const requiredModule = require.cache[modulePath] as NodeModule;
 			if (requiredModule) {
 				if (!callerTrackedModule) {
