@@ -20,12 +20,6 @@ export function hotClass(
 			return;
 		}
 
-		FunctionStore.instance.addPrototype(
-			module,
-			target.name,
-			target.prototype
-		);
-
 		for (const key of Object.getOwnPropertyNames(target.prototype)) {
 			const d = Object.getOwnPropertyDescriptor(target.prototype, key);
 			if (d && typeof d.value === "function" && !d.value.isHot) {
@@ -33,6 +27,13 @@ export function hotClass(
 				Object.defineProperty(target.prototype, key, d);
 			}
 		}
+
+		// Update existing only after all hot-wrappers have been installed.
+		FunctionStore.instance.addPrototypeAndUpdateExisting(
+			module,
+			target.name,
+			target.prototype
+		);
 	};
 }
 
@@ -135,17 +136,13 @@ function handleError(
 	if (e instanceof ModuleChangedError) {
 		if (e.frameToRestart === entry) {
 			HotReloadService.instance!.log(
-				`Restarting ${e.frameToRestart.className}::${
-					e.frameToRestart.methodName
-				}(${args}).`,
+				`Restarting ${e.frameToRestart.className}::${e.frameToRestart.methodName}(${args}).`,
 				args
 			);
 			return { continue: true };
 		} else {
 			HotReloadService.instance!.log(
-				`Interrupting ${entry.className}::${
-					entry.methodName
-				}(${args}) because a caller changed.`
+				`Interrupting ${entry.className}::${entry.methodName}(${args}) because a caller changed.`
 			);
 		}
 	}
@@ -187,7 +184,11 @@ class FunctionStore {
 		return JSON.stringify({ mod: module.filename, className, methodName });
 	}
 
-	public addPrototype(module: NodeModule, className: string, newProto: any) {
+	public addPrototypeAndUpdateExisting(
+		module: NodeModule,
+		className: string,
+		newProto: any
+	) {
 		const key = JSON.stringify({ mod: module.filename, className });
 		let oldProtos = this.prototypes.get(key);
 		if (!oldProtos) {
