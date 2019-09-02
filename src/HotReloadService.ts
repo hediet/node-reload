@@ -88,9 +88,7 @@ export class HotReloadService {
 			modulePath = Module._resolveFilename(request, caller);
 		} catch (e) {
 			this.log(
-				`Error while resolving module "${request}" from "${
-					caller.filename
-				}"`
+				`Error while resolving module "${request}" from "${caller.filename}"`
 			);
 			return moduleExports;
 		}
@@ -109,9 +107,7 @@ export class HotReloadService {
 			}
 		} catch (e) {
 			this.log(
-				`Error while requiring "${request}" from "${
-					caller.filename
-				}": `,
+				`Error while requiring "${request}" from "${caller.filename}": `,
 				e
 			);
 		}
@@ -178,6 +174,14 @@ export class HotReloadService {
 		if (!changedModule) {
 			return false;
 		}
+		const now = new Date();
+
+		if (now.getTime() - changedModule.lastFileChangeCheck.getTime() < 100) {
+			// As reading the file is quite expensive,
+			// this limits checking whether the content has changed to once per 100ms.
+			return false;
+		}
+		changedModule.lastFileChangeCheck = now;
 
 		const newSource = readFileSync(changedModule.module.filename, {
 			encoding: "utf8",
@@ -320,6 +324,7 @@ class ReconcilableNodeModule extends ReconcilableModule {
 	public prepareNewModule:
 		| ((module: NodeModule) => void)
 		| undefined = undefined;
+	public lastFileChangeCheck = new Date();
 
 	constructor(
 		public readonly module: NodeModule,
