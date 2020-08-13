@@ -8,8 +8,7 @@
 			"name": "Run Simple Steps",
 			"type": "node",
 			"request": "launch",
-			"program": "${workspaceFolder}/examples/dist/simple-steps.entry",
-			"preLaunchTask": "npm: dev"
+			"program": "${workspaceFolder}/examples/dist/moodle.entry"
 		},
 		{
 			"name": "Run Demo Extension",

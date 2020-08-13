@@ -15,6 +15,9 @@
 		"vscode": "^1.1.33",
 		"ws": "^6.2.1"
 	},
+	"devDependencies": {
+		"typescript": "^3.4.3"
+	},
 	"activationEvents": [
 		"*"
 	],

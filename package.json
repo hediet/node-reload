@@ -28,6 +28,9 @@
 		"stack-trace": "^0.0.10",
 		"ws": "^7.0.0"
 	},
+	"devDependencies": {
+		"typescript": "^3.9.7"
+	},
 	"publishConfig": {
 		"access": "public",
 		"registry": "https://registry.npmjs.org/"
