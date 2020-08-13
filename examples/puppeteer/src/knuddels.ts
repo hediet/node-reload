@@ -1,21 +1,22 @@
-import {
-    Steps,
-    steps,
-    enableHotReload,
-    setupControllerForExportedBuilder,
-    installUpdateReconciler
+import { 
+    Steps, 
+    steps, 
+    enableHotReload, 
+    runExportedSteps, 
+    registerUpdateReconciler
 } from "@hediet/node-reload";
-import puppeteer = require("puppeteer");
+
+import puppeteer from "puppeteer";
 
 enableHotReload();
-installUpdateReconciler(module);
-setupControllerForExportedBuilder(module, buildSteps);
+registerUpdateReconciler(module);
+runExportedSteps(module, buildSteps);
 
-export function buildSteps(): Steps<void, void> {
+export function buildSteps(): Steps {
     return steps(
         {
             id: "Setup",
-            do: async () => {
+            run: async () => {
                 const browser = await puppeteer.launch({
                     slowMo: 10,
                     devtools: true,
@@ -34,32 +35,32 @@ export function buildSteps(): Steps<void, void> {
         },
         {
             id: "NavigateTo",
-            do: async args => {
-                const page = args.page;
-                await page.goto(
-                    "https://preview.knuddels.de/"
-                ); //aa
+            run: async (args) => {
+                const { page } = args.result;
+                await page.goto("https://preview.knuddels.de/"); //aa
                 return args;
             }
         },
         {
             id: "Login",
-            do: async args => {
-                const page = args.page;
+            run: async (args) => {
+                const { result } = args;
+                const { page } = result;
                 console.log("testaaa");
                 const s = await page.waitFor("div[data-test-id='lp-view-switch']");
                 s.click();
 
                 return {
-                    result: args,
+                    result,
                     undo: async () => page.reload()
                 };
             }
         },
         {
             id: "Login2",
-            do: async args => {
-                const page = args.page;
+            run: async (args) => {
+                const { result } = args;
+                const { page } = result;
                 const s = await page.waitFor("input[data-test-id='login-input-username']");
                 await s.type("Hennithing");
 
@@ -72,18 +73,14 @@ export function buildSteps(): Steps<void, void> {
                 // testa
 
                 return {
-                    result: args,
-                    undo: async () => {
-
-                    }
+                    result,
+                    undo: async () => {}
                 };
             }
         },
         {
             id: "next",
-            do: async args =>  {
-
-            }
+            run: async (args) => {}
         }
     );
 }
