@@ -1,8 +1,8 @@
-import { 
-    Steps, 
-    steps, 
-    enableHotReload, 
-    runExportedSteps, 
+import {
+    Steps,
+    steps,
+    enableHotReload,
+    runExportedSteps,
     registerUpdateReconciler
 } from "@hediet/node-reload";
 
