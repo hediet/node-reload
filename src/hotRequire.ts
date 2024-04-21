@@ -1,4 +1,4 @@
-import { DisposableLike, Disposable, dispose } from "@hediet/std/disposable";
+import { DisposableLike, Disposable, dispose } from "./utils";
 import { HotReloadService, DelegateModule } from "./HotReloadService";
 
 /**

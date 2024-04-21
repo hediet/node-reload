@@ -1,6 +1,5 @@
-import { watch } from "chokidar";
 import { relative } from "path";
-import { readFileSync } from "fs";
+import { FSWatcher, readFileSync, watch } from "fs";
 import Module = require("module");
 import {
 	UpdateReason,
@@ -9,27 +8,34 @@ import {
 	getModuleReconciler,
 	ModuleUpdateReason,
 } from "./Reconciler";
-import chalk from "chalk";
-import { Disposable, disposeOnReturn } from "@hediet/std/disposable";
+import { Disposable, disposeOnReturn } from "./utils";
 
 export class HotReloadService {
 	public static instance: HotReloadService | undefined;
 
-	private readonly watcher = watch([], { disableGlobbing: true });
 	private readonly trackedModules = new Map<
 		/* fileName */ string,
 		ReconcilableNodeModule
 	>();
 
 	private level: number = 0;
+	private readonly watcher = new Watcher(fileName => {
+		setTimeout(() => {
+			this.handleFileMightHaveChanged(fileName);
+		}, 100);
+	});
 
 	public log(message: string, ...args: any[]) {
 		if (this.loggingEnabled) {
+			function gray(str: string): string {
+				return `\x1b[90m${str}\x1b[0m`;
+			}
+
 			let padding = "";
 			for (let i = 0; i < this.level; i++) {
 				padding += "| ";
 			}
-			console.log(chalk.gray(padding + message), ...args);
+			console.log(gray(padding + message), ...args);
 		}
 	}
 
@@ -49,13 +55,6 @@ export class HotReloadService {
 		private readonly loggingEnabled: boolean,
 		private readonly shouldTrackModule: (filename: string) => boolean
 	) {
-		this.watcher.on("change", (file: string) => {
-			// Deferring guards against safe write or file truncation before writing.
-			setTimeout(() => {
-				this.handleFileMightHaveChanged(file);
-			}, 200);
-		});
-
 		const service = this;
 
 		Module.prototype.require = function(
@@ -309,6 +308,34 @@ export class HotReloadService {
 			}
 		}
 		return mightNeedReconcilation;
+	}
+}
+
+class Watcher {
+	private readonly watchers = new Map<string, FSWatcher>();
+
+	constructor(
+		public readonly handleChange: (fileName: string) => void,
+	) {}
+
+	public add(filename: string) {
+		if (this.watchers.has(filename)) {
+			return;
+		}
+
+		const w = watch(filename);
+		w.on('change', () => {
+			console.log(`File changed: ${filename}`);
+			this.handleChange(filename);
+		});
+		this.watchers.set(filename, w);
+	}
+
+	public close(): void {
+		for (const w of this.watchers.values()) {
+			w.close();
+		}
+		this.watchers.clear();
 	}
 }
 

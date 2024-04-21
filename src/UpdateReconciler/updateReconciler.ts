@@ -1,5 +1,5 @@
-import { Disposable, DisposableLike, dispose } from "@hediet/std/disposable";
-import { AttachedProperty } from "@hediet/std/extensibility";
+import { Disposable, DisposableLike, dispose } from "../utils";
+import { AttachedProperty } from "../utils";
 import { setModuleReconciler } from "../Reconciler";
 import { HotReloadService } from "../HotReloadService";
 
@@ -59,7 +59,7 @@ export function registerUpdateReconciler(module: NodeModule) {
 		});
 
 		for (const updater of curUpdaters) {
-			const newFn = newExports[updater.exportName];
+			const newFn = (newExports as any)[updater.exportName];
 			if (!updater.hasFnChanged(newFn, updater.lastFn)) {
 				continue;
 			}

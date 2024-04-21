@@ -1,4 +1,4 @@
-import { AttachedProperty } from "@hediet/std/extensibility";
+import { AttachedProperty } from "./utils";
 
 export interface ModuleUpdateReason {
 	oldSource: string;

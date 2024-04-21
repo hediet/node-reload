@@ -129,7 +129,7 @@ function getNewFunc(module: NodeModule, className: string, methodName: string) {
 }
 
 function handleError(
-	e: Error,
+	e: unknown,
 	args: any[],
 	entry: HotStackFrame
 ): { continue: boolean } {
