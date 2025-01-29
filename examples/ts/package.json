@@ -1,0 +1,31 @@
+{
+	"name": "@hediet/node-reload-example",
+	"version": "1.0.0",
+	"license": "MIT",
+	"dependencies": {
+		"@hediet/live-debug": "^0.4.1",
+		"@hediet/node-reload": "^0.4.0",
+		"@hediet/std": "^0.4.0",
+		"@types/node": "^11.13.7",
+		"@types/puppeteer-core": "^1.9.0",
+		"@types/rimraf": "^2.0.2",
+		"puppeteer": "^1.15.0",
+		"puppeteer-core": "^1.15.0",
+		"rimraf": "^2.6.3",
+		"vscode": "^1.1.33",
+		"ws": "^6.2.1"
+	},
+	"devDependencies": {
+		"typescript": "^3.4.3"
+	},
+	"activationEvents": [
+		"*"
+	],
+	"scripts": {
+		"dev": "tsc --watch"
+	},
+	"main": "./dist/hot-vscode-extension.js",
+	"engines": {
+		"vscode": "^1.30.0"
+	}
+}

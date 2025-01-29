@@ -1,7 +1,11 @@
 {
 	"name": "@hediet/node-reload",
-	"version": "0.8.0",
+	"version": "0.10.0",
 	"main": "dist/index.js",
+	"exports": {
+		".": "./dist/index.js",
+		"./node": "./dist/node.js"
+	},
 	"types": "dist/index.d.ts",
 	"author": {
 		"name": "Henning Dieterichs",
@@ -18,11 +22,10 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"@types/node": "^12.0.7",
-		"@types/stack-trace": "^0.0.29"
+		"@types/node": "^22.12.0"
 	},
 	"devDependencies": {
-		"typescript": "^3.9.7"
+		"typescript": "^5.7.2"
 	},
 	"publishConfig": {
 		"access": "public",

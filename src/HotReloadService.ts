@@ -1,436 +1,339 @@
-import { relative } from "path";
-import { FSWatcher, readFileSync, watch } from "fs";
-import Module = require("module");
-import {
-	UpdateReason,
-	ReconcileContext,
-	nodeModuleSourceProperty,
-	getModuleReconciler,
-	ModuleUpdateReason,
-} from "./Reconciler";
-import { Disposable, disposeOnReturn } from "./utils";
+import { HotReloadOptions } from "./node";
+import { IDisposable } from "./disposable";
+import { FileWatcher } from "./FileWatcher";
+import { getLogLevel, Logger } from "./logging";
+import { registerModuleInterceptors, resolveFileName, getLoadedModule, deleteModule, NodeJsModule, moduleFromNodeModule } from "./nodeApi";
+import { EventEmitter } from "./utils";
 
 export class HotReloadService {
-	public static instance: HotReloadService | undefined;
+    private static _instance: HotReloadService | undefined = undefined;
+    public static get instance(): HotReloadService | undefined { return this._instance; }
 
-	private readonly trackedModules = new Map<
-		/* fileName */ string,
-		ReconcilableNodeModule
-	>();
+    public static initialize(options: HotReloadOptions): void {
+        if (this._instance) {
+            if (!options.skipInitializationIfEnabled) {
+                console.error('HotReloadService already initialized, ignoring subsequent initialization call. (Set skipInitializationIfEnabled option to true to suppress this warning.)');
+            }
+        } else {
+            this._instance = new HotReloadService(
+                new Logger(getLogLevel(options.logging), options.loggingFileRoot),
+                predicateFromStringArray(options.ignoredModules ?? ['.*[/\\\\]node_modules[/\\\\].*']),
+                predicateFromStringArray(options.ignoredModules ?? ['vscode']),
+            );
+            this._instance.trackModule(options.entryModule);
+        }
+    }
 
-	private level: number = 0;
-	private readonly watcher = new Watcher(fileName => {
-		setTimeout(() => {
-			this.handleFileMightHaveChanged(fileName);
-		}, 100);
-	});
+    public readonly interceptor = registerModuleInterceptors({
+        interceptLoad: (module, filename) => {
+            const loadResult = this.interceptor.originalLoad(module, filename);
+            this._onAfterLoad(filename);
+            return loadResult;
+        },
+        interceptRequire: (module, filename) => {
+            const { didLog } = this._onBeforeRequire(module, filename);
+            if (didLog) {
+                this._logger.indent();
+            }
+            try {
+                const result = this.interceptor.originalRequire(module, filename);
+                return result;
+            } finally {
+                if (didLog) {
+                    this._logger.unindent();
+                }
+            }
+        },
+    });
 
-	public log(message: string, ...args: any[]) {
-		if (this.loggingEnabled) {
-			function gray(str: string): string {
-				return `\x1b[90m${str}\x1b[0m`;
-			}
+    private readonly _trackedModules = new Map<string, TrackedModule>();
+    private readonly _watcher = new FileWatcher(filesnames => this._handleFileChanges(filesnames));
+    private readonly _onTrackedModuleExportsLoaded = new EventEmitter<{ module: TrackedModule }>();
+    public readonly onTrackedModuleExportsLoaded = this._onTrackedModuleExportsLoaded.event;
 
-			let padding = "";
-			for (let i = 0; i < this.level; i++) {
-				padding += "| ";
-			}
-			console.log(gray(padding + message), ...args);
-		}
-	}
+    constructor(
+        private readonly _logger: Logger,
+        private readonly _shouldIgnoreModule: (moduleFilename: string) => boolean,
+        private readonly _shouldIgnoreRequireRequest: (request: string) => boolean,
+    ) {
+        this._logger.logHotReloadActive();
+    }
 
-	public indentLog(): Disposable {
-		this.level++;
-		return Disposable.create(() => {
-			this.level--;
-		});
-	}
+    public trackModule(module: NodeModule): void {
+        this._getOrCreateTrackedModule(module.filename);
+        setTimeout(() => {
+            this._onAfterLoad(module.filename);
+        }, 0);
+    }
 
-	public readonly originalModule = {
-		load: Module.prototype.load,
-		require: Module.prototype.require,
-	};
+    private _getOrCreateTrackedModule(filename: string): TrackedModule {
+        const existing = this._trackedModules.get(filename);
+        if (existing) {
+            return existing;
+        }
+        const trackedModule = new TrackedModule(filename, this, this._logger, () => this._watcher.addFile(filename));
+        this._trackedModules.set(filename, trackedModule);
+        return trackedModule;
+    }
 
-	constructor(
-		private readonly loggingEnabled: boolean,
-		private readonly shouldTrackModule: (filename: string) => boolean
-	) {
-		const service = this;
+    private _onBeforeRequire(module: NodeJsModule, request: string): { didLog: boolean } {
+        if (this._shouldIgnoreRequireRequest(request)) {
+            const didLog = this._logger.logSkippingRequire(request, module.filename, 'ignored require request');
+            return { didLog };
+        }
 
-		Module.prototype.require = function(
-			this: NodeModule,
-			request: string
-		): any {
-			return service.require(this, request);
-		};
+        const requiredByModule = this._trackedModules.get(module.filename);
+        if (!requiredByModule) {
+            const didLog = this._logger.logSkippingRequire(request, module.filename, 'caller not tracked');
+            return { didLog };
+        }
 
-		Module.prototype.load = function(this: NodeModule, filename: string) {
-			service.handleBeforeModuleLoaded(this, filename);
-			const result = service.originalModule.load.call(this, filename);
-			return result;
-		};
-	}
+        let requiredModuleFilename: string;
+        try {
+            requiredModuleFilename = resolveFileName(request, module);
+        } catch (e) {
+            const didLog = this._logger.logResolvingError(request, module.filename, e);
+            return { didLog };
+        }
 
-	dispose() {
-		this.watcher.close();
-	}
+        if (this._shouldIgnoreModule(requiredModuleFilename)) {
+            const didLog = this._logger.logSkippingRequire(request, module.filename, 'required module ignored');
+            return { didLog };
+        }
 
-	public require(
-		caller: NodeModule,
-		request: string,
-		callerTrackedModule?: ReconcilableModule
-	): unknown {
-		const moduleExports = this.originalModule.require.call(caller, request);
+        const didLog = this._logger.logTrackingRequire(request, module.filename, requiredModuleFilename);
+        const requiredModule = this._getOrCreateTrackedModule(requiredModuleFilename);
+        requiredModule.consumers.add(requiredByModule);
+        return { didLog };
+    }
 
-		let modulePath: string;
-		try {
-			modulePath = Module._resolveFilename(request, caller);
-		} catch (e) {
-			this.log(
-				`Error while resolving module "${request}" from "${caller.filename}"`
-			);
-			return moduleExports;
-		}
-		try {
-			const requiredModule = require.cache[modulePath] as NodeModule;
-			if (requiredModule) {
-				if (!callerTrackedModule) {
-					callerTrackedModule = this.trackedModules.get(
-						caller.filename
-					);
-				}
-				this.handleAfterModuleRequired(
-					callerTrackedModule,
-					requiredModule
-				);
-			}
-		} catch (e) {
-			this.log(
-				`Error while requiring "${request}" from "${caller.filename}": `,
-				e
-			);
-		}
+    private _onAfterLoad(filename: string): void {
+        const loadedModule = this._trackedModules.get(filename);
+        if (loadedModule) {
+            loadedModule.watch();
+            loadedModule.exports = getLoadedModule(filename)?.exports;
+            this._onTrackedModuleExportsLoaded.emit({ module: loadedModule });
+        }
+    }
 
-		return moduleExports;
-	}
+    private _handleFileChanges(filenames: string[]): void {
+        const didLog = this._logger.logFilesChanged(filenames);
+        if (didLog) {
+            this._logger.indent();
+        }
+        try {
+            const modules: TrackedModule[] = [];
+            for (const filename of filenames) {
+                const module = this._trackedModules.get(filename);
+                if (module) {
+                    modules.push(module);
+                }
+            }
 
-	public trackEntryModule(mod: NodeModule) {
-		if (this.trackedModules.get(mod.filename)) {
-			return;
-		}
-
-		this.handleBeforeModuleLoaded(mod, mod.filename);
-		this.handleAfterModuleRequired(undefined, mod);
-	}
-
-	private handleBeforeModuleLoaded(
-		requiredModule: NodeModule,
-		filename: string
-	) {
-		if (!this.shouldTrackModule(filename)) {
-			return;
-		}
-
-		const source = readFileSync(filename, {
-			encoding: "utf8",
-		});
-		nodeModuleSourceProperty.set(requiredModule, source);
-
-		const trackedModule = new ReconcilableNodeModule(requiredModule, this);
-
-		const oldTrackedModule = this.trackedModules.get(filename);
-		if (oldTrackedModule) {
-			if (oldTrackedModule.prepareNewModule) {
-				oldTrackedModule.prepareNewModule(requiredModule);
-			}
-			this.log(`Existing module for file "${filename}" was overridden.`);
-		}
-
-		this.trackedModules.set(filename, trackedModule);
-	}
-
-	private handleAfterModuleRequired(
-		dependant: ReconcilableModule | undefined,
-		dependency: NodeModule
-	) {
-		let requiredTrackedModule = this.trackedModules.get(
-			dependency.filename
-		);
-		if (!requiredTrackedModule) {
-			this.log(`Required untracked module "${dependency.filename}"`);
-		} else {
-			if (dependant) {
-				requiredTrackedModule.dependants.add(dependant);
-				dependant.dependencies.add(requiredTrackedModule);
-			}
-
-			this.watcher.add(dependency.filename);
-		}
-	}
-
-	public handleFileMightHaveChanged(filename: string): boolean {
-		const changedModule = this.trackedModules.get(filename);
-		if (!changedModule) {
-			return false;
-		}
-		const now = new Date();
-
-		if (now.getTime() - changedModule.lastFileChangeCheck.getTime() < 100) {
-			// As reading the file is quite expensive,
-			// this limits checking whether the content has changed to once per 100ms.
-			return false;
-		}
-		changedModule.lastFileChangeCheck = now;
-
-		const newSource = readFileSync(changedModule.module.filename, {
-			encoding: "utf8",
-		});
-		const oldSource = nodeModuleSourceProperty.get(changedModule.module)!;
-		if (newSource === oldSource) {
-			return false;
-		}
-
-		this.log(
-			`File changed: "${relative(
-				process.cwd(),
-				changedModule.module.filename
-			)}"`
-		);
-
-		nodeModuleSourceProperty.set(changedModule.module, newSource);
-
-		const mightNeedReconcilation = this.getModulesThatMightNeedReconcilation(
-			changedModule
-		);
-
-		const processedDeps = new Map<
-			ReconcilableModule,
-			{ reconciled: boolean; reason: UpdateReason }
-		>();
-		const queue = [changedModule as ReconcilableModule];
-		while (queue.length > 0) {
-			const curMod = queue.shift()!;
-			if (processedDeps.has(curMod)) {
-				continue;
-			}
-
-			const possibleChangedDeps = [
-				...curMod.dependencies.values(),
-			].filter(d => mightNeedReconcilation.has(d));
-
-			if (!possibleChangedDeps.every(d => processedDeps.has(d))) {
-				// Process after all relevant deps have been processed.
-				continue;
-			}
-			const notReconciledDeps = possibleChangedDeps.filter(
-				d => !processedDeps.get(d)!.reconciled
-			);
-			const reason = this.getReason(
-				curMod,
-				{ newSource, oldSource },
-				changedModule,
-				notReconciledDeps,
-				processedDeps
-			);
-			const reconciled = this.tryToReconcile(reason, curMod);
-			processedDeps.set(curMod, { reason, reconciled });
-
-			for (const dependant of curMod.dependants) {
-				queue.push(dependant);
-			}
-		}
-
-		return true;
-	}
-
-	private getReason(
-		curMod: ReconcilableModule,
-		curModChangeReason: ModuleUpdateReason | undefined,
-		changedModule: ReconcilableNodeModule,
-		notReconciledDeps: ReconcilableModule[],
-		processedDeps: ReadonlyMap<
-			ReconcilableModule,
-			{ reconciled: boolean; reason: UpdateReason }
-		>
-	): UpdateReason {
-		const reason: UpdateReason = {
-			dependencyUpdates: new Map(),
-		};
-		if (curMod === changedModule) {
-			reason.moduleUpdates = curModChangeReason;
-		}
-		for (const d of notReconciledDeps) {
-			reason.dependencyUpdates.set(d.id, processedDeps.get(d)!.reason);
-		}
-		return reason;
-	}
-
-	private tryToReconcile(
-		reason: UpdateReason,
-		curMod: ReconcilableModule
-	): boolean {
-		if (reason.moduleUpdates || reason.dependencyUpdates.size > 0) {
-			// something changed for this module
-			this.log(`Reconciling "${curMod.id}"`);
-
-			const d = this.indentLog();
-			try {
-				if (curMod.tryToReconcile(reason)) {
-					this.log(`succeeded.`);
-					return true;
-				} else {
-					if (curMod.dependants.size === 0) {
-						this.log(`failed.`);
-					}
-					return false;
-				}
-			} finally {
-				d.dispose();
-			}
-		}
-		return false;
-	}
-
-	private getModulesThatMightNeedReconcilation(
-		changedModule: ReconcilableModule
-	): Set<ReconcilableModule> {
-		const mightNeedReconcilation = new Set<ReconcilableModule>();
-		const queue = [changedModule];
-		while (queue.length > 0) {
-			const curMod = queue.shift()!;
-			mightNeedReconcilation.add(curMod);
-
-			for (const dependant of curMod.dependants) {
-				if (mightNeedReconcilation.has(dependant)) {
-					continue;
-				}
-				queue.push(dependant);
-			}
-		}
-		return mightNeedReconcilation;
-	}
+            for (const module of modules) {
+                module.beginUpdate([]);
+                module.markChanged();
+            }
+            for (const module of modules) {
+                module.endUpdate();
+            }
+        } finally {
+            if (didLog) {
+                this._logger.unindent();
+            }
+        }
+    }
 }
 
-class Watcher {
-	private readonly watchers = new Map<string, FSWatcher>();
-
-	constructor(
-		public readonly handleChange: (fileName: string) => void,
-	) {}
-
-	public add(filename: string) {
-		if (this.watchers.has(filename)) {
-			return;
-		}
-
-		const w = watch(filename);
-		w.on('change', () => {
-			console.log(`File changed: ${filename}`);
-			this.handleChange(filename);
-		});
-		this.watchers.set(filename, w);
-	}
-
-	public close(): void {
-		for (const w of this.watchers.values()) {
-			w.close();
-		}
-		this.watchers.clear();
-	}
+function predicateFromStringArray(arr: string[]): (str: string) => boolean {
+    const regexes = arr.map(s => new RegExp(s));
+    return str => {
+        return regexes.some(r => r.test(str));
+    };
 }
 
-abstract class ReconcilableModule {
-	public dependencies = new Set<ReconcilableModule>();
-	public dependants = new Set<ReconcilableModule>();
-	public abstract get id(): string;
+export class TrackedModule {
+    public readonly consumers = new Set<TrackedModule>();
 
-	public abstract tryToReconcile(reason: UpdateReason): boolean;
+    public exports: Record<string, unknown> = {};
+
+    private readonly _updateStrategies = new Set<IUpdateStrategy>();
+    public readonly updateStrategies: ReadonlySet<IUpdateStrategy> = this._updateStrategies;
+
+    public registerUpdateStrategy(strategy: IUpdateStrategy): IDisposable {
+        this._updateStrategies.add(strategy);
+        return {
+            dispose: () => this._updateStrategies.delete(strategy),
+        };
+    }
+
+    private _updateCounter = 0;
+    private _updatedCosumers: TrackedModule[] = [];
+    private _active = false;
+    public get active(): boolean { return this._active; }
+    private _moduleChanged = false;
+    private readonly _changedDependencies: Set<ModuleChangeInfo> = new Set();
+    private _watcher: IDisposable | undefined = undefined;
+
+    constructor(
+        public readonly filename: string,
+        private readonly _hotReloadService: HotReloadService,
+        private readonly _logger: Logger,
+        private readonly _watch: () => IDisposable,
+    ) { }
+
+    public watch(): void {
+        if (this._watcher) {
+            return;
+        }
+        this._watcher = this._watch();
+    }
+
+    public beginUpdate(stack: TrackedModule[]): void {
+        if (this._active) {
+            throw new Error('Cannot begin update while update is in progress');
+        }
+        stack.push(this);
+        this._active = true;
+        this._updateCounter++;
+
+        if (this._updateCounter === 1) {
+            this._updatedCosumers = [];
+            for (const c of this.consumers) {
+                if (c.active) {
+                    // recursion, ignore
+                    stack.push(c);
+                    this._logger.logRecursiveUpdate(stack.map(s => s.filename));
+                    stack.pop();
+                } else {
+                    this._updatedCosumers.push(c);
+                    c.beginUpdate(stack);
+                }
+            }
+        }
+
+        stack.pop();
+        this._active = false;
+    }
+
+    public endUpdate(): void {
+        if (this._active) {
+            throw new Error('Cannot begin update while update is in progress');
+        }
+        try {
+            let didLog = false;
+            let didLogUpdatingModule = false;
+            this._active = true;
+            this._updateCounter--;
+            if (this._updateCounter === 0) {
+                if (this._moduleChanged || this._changedDependencies.size > 0) {
+                    const changeInfo = new ModuleChangeInfo(this, this._moduleChanged, new Set(this._changedDependencies));
+                    this._moduleChanged = false;
+                    this._changedDependencies.clear();
+
+                    didLogUpdatingModule = this._logger.logUpdatingModule(this.filename);
+                    if (didLogUpdatingModule) {
+                        this._logger.indent();
+                    }
+
+                    let couldApplyUpdate = false;
+                    for (const u of this.updateStrategies) {
+                        const r = u.applyUpdate(changeInfo);
+                        couldApplyUpdate = couldApplyUpdate || r;
+                    }
+                    if (couldApplyUpdate) {
+                        didLog = this._logger.logModuleUpdated(this.filename);
+                    } else {
+                        this.clearCache();
+                        if (this._updatedCosumers.length === 0) {
+                            didLog = this._logger.logEntryModuleUpdateFailed(this.filename);
+                        } else {
+                            didLog = this._logger.logUpdateFailed(this.filename, this._updatedCosumers.length);
+                            for (const consumer of this._updatedCosumers) {
+                                consumer.markDependencyChanged(changeInfo);
+                            }
+                        }
+                    }
+                }
+
+                if (didLog) {
+                    this._logger.indent();
+                }
+                for (const consumer of this._updatedCosumers) {
+                    consumer.endUpdate();
+                }
+                if (didLog) {
+                    this._logger.unindent();
+                }
+                if (didLogUpdatingModule) {
+                    this._logger.unindent();
+                }
+                this._updatedCosumers = [];
+            } else {
+                this._logger.logPostponeEndUpdate(this.filename, this._updateCounter);
+            }
+        } finally {
+            this._active = false;
+        }
+    }
+
+    public markChanged(): void {
+        this._checkUpdateInProgress();
+        this._moduleChanged = true;
+    }
+
+    public markDependencyChanged(changeInfo: ModuleChangeInfo): void {
+        this._checkUpdateInProgress();
+        this._changedDependencies.add(changeInfo);
+    }
+
+    private _checkUpdateInProgress(): void {
+        if (this._updateCounter === 0) {
+            debugger;
+            throw new Error('Cannot mark module as changed outside of an update');
+        }
+    }
+
+    public clearCache(): void {
+        this._logger.logClearingModule(this.filename);
+        deleteModule(this.filename);
+    }
+
+    public reload(): void {
+        this.clearCache();
+        this._hotReloadService.interceptor.originalRequire(moduleFromNodeModule(module), this.filename);
+    }
+
+    public toString() {
+        return `TrackedModule(${this.filename})`;
+    }
 }
 
-class ReconcilableNodeModule extends ReconcilableModule {
-	public prepareNewModule:
-		| ((module: NodeModule) => void)
-		| undefined = undefined;
-	public lastFileChangeCheck = new Date();
-
-	constructor(
-		public readonly module: NodeModule,
-		private readonly service: HotReloadService
-	) {
-		super();
-	}
-
-	public get id(): string {
-		return this.module.id;
-	}
-
-	public tryToReconcile(reason: UpdateReason): boolean {
-		let reloaded = false;
-
-		const clearOldCache = () => {
-			if (!reloaded) {
-				this.service.log(`clearing cache`);
-				delete require.cache[this.module.filename];
-			}
-			reloaded = true;
-		};
-
-		const reloadModule: ReconcileContext["reloadModule"] = prepareNewModule => {
-			clearOldCache();
-			this.service.log("requiring new module");
-			this.prepareNewModule = prepareNewModule;
-			const newExports = disposeOnReturn(track => {
-				track(this.service.indentLog());
-				// don't track this dependency to ourself
-				return this.service.originalModule.require.call(
-					this.module,
-					this.module.filename
-				);
-			});
-			this.prepareNewModule = undefined;
-			const requiredModule = require.cache[
-				this.module.filename
-			] as NodeModule;
-			return { newExports, newModule: requiredModule };
-		};
-
-		const reconciled = this.reconcile({
-			...reason,
-			reloadModule,
-		});
-
-		if (!reconciled) {
-			clearOldCache();
-		}
-		return reconciled;
-	}
-
-	private reconcile(context: ReconcileContext): boolean {
-		const r = getModuleReconciler(this.module);
-		if (r) {
-			return r(context);
-		}
-		return false;
-	}
+export interface IUpdateStrategy {
+    applyUpdate(changeInfo: ModuleChangeInfo): boolean;
 }
 
-export class DelegateModule extends ReconcilableModule {
-	public static idCounter = 0;
+export class ModuleChangeInfo {
+    constructor(
+        public readonly module: TrackedModule,
+        /**
+         * Is set, if the current module changed.
+         */
+        public readonly moduleChanged: boolean,
+        /**
+         * Describes the changes of the dependent modules.
+         */
+        public readonly dependencyChangeInfos: ReadonlySet<ModuleChangeInfo>,
+    ) { }
 
-	private _id: number = DelegateModule.idCounter++;
+    toString(): string {
+        return JSON.stringify(this._toJson(), null, '\t');
+    }
 
-	constructor(
-		private readonly idPrefix: string,
-		private readonly _reconciler: (reason: UpdateReason) => boolean
-	) {
-		super();
-	}
-
-	public get id(): string {
-		return `${this.idPrefix}#${this._id}`;
-	}
-
-	public tryToReconcile(reason: UpdateReason): boolean {
-		return this._reconciler(reason);
-	}
+    private _toJson(): any {
+        return {
+            moduleChanged: this.moduleChanged,
+            dependencyChangeInfos: Object.fromEntries(this.dependencyChangeInfos.entries()),
+        };
+    }
 }

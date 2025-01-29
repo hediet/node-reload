@@ -10,7 +10,8 @@
         "declaration": true,
         "declarationMap": true,
         "newLine": "LF",
-        "sourceMap": true
+        "sourceMap": true,
+        "useDefineForClassFields": false,
     },
-    "include": ["./src/**/*"]
+    "include": ["./src/**/*", "./src/types.d.ts", "./node_modules/@types/node/fs.d.ts"]
 }
