@@ -22,3 +22,10 @@ export function enableHotReload(options: HotReloadOptions): void {
 	HotReloadService.initialize(options);
 	initializeHotReloadExport(HotReloadService.instance!);
 }
+
+/**
+ * Mark a module as changed, so that it will be reloaded (even if its source did not actually change).
+*/
+export function handleChange(moduleOrFilename: Module | string): void {
+	HotReloadService.instance?.handleChange(moduleOrFilename);
+}

@@ -47,7 +47,7 @@ export class HotReloadService {
     });
 
     private readonly _trackedModules = new Map<string, TrackedModule>();
-    private readonly _watcher = new FileWatcher(filesnames => this._handleFileChanges(filesnames));
+    private readonly _watcher = new FileWatcher(filenames => this._handleFileChanges(filenames));
     private readonly _onTrackedModuleExportsLoaded = new EventEmitter<{ module: TrackedModule }>();
     public readonly onTrackedModuleExportsLoaded = this._onTrackedModuleExportsLoaded.event;
 
@@ -142,6 +142,13 @@ export class HotReloadService {
                 this._logger.unindent();
             }
         }
+    }
+
+    public handleChange(moduleOrFilename: NodeModule | string): void {
+        const moduleFilename = typeof moduleOrFilename === 'string'
+            ? moduleOrFilename
+            : moduleOrFilename.filename;
+        this._handleFileChanges([moduleFilename]);
     }
 }
 
